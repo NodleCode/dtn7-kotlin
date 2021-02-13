@@ -1,0 +1,4 @@
+include ':bpv7'
+include ':bputil'
+project(":bputil").projectDir = file("tools/bputil")
+
