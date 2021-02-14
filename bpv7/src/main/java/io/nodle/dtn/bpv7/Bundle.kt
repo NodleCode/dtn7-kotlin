@@ -6,29 +6,20 @@ import java.lang.Exception
  * @author Lucien Loiseau on 12/02/21.
  */
 
-class PayloadMissingException : Exception("payload is missing")
-
 data class Bundle(
         var primaryBlock: PrimaryBlock,
-        var canonicalBlocks: MutableCollection<CanonicalBlock> = ArrayList())
+        var canonicalBlocks: MutableList<CanonicalBlock> = ArrayList())
 
 fun Bundle.addBlock(block: CanonicalBlock): Bundle {
-    if (block.blockType != BlockType.PayloadBlock.code || !hasPayload()) {
-        canonicalBlocks.add(block.number(canonicalBlocks.size))
+    if (block.blockType != BlockType.PayloadBlock.code || !hasBlock(BlockType.PayloadBlock.code)) {
+        canonicalBlocks.add(block.number(canonicalBlocks.size+1))
     }
+    canonicalBlocks.sortByDescending { it.blockNumber }
     return this
 }
 
-fun Bundle.hasPayload() = canonicalBlocks
-        .map { it.blockType }.contains(BlockType.PayloadBlock.code)
+fun Bundle.hasBlock(blockNumber : Int) = canonicalBlocks.map { it.blockType }.contains(blockNumber)
 
-@Throws(PayloadMissingException::class)
-fun Bundle.getPayload() : PayloadBlock {
-    for (block in canonicalBlocks) {
-        if (block.blockType == BlockType.PayloadBlock.code) {
-            return block as PayloadBlock
-        }
-    }
-    throw PayloadMissingException()
-}
+fun Bundle.getBlock(blockNumber: Int) = canonicalBlocks.first { it.blockType == blockNumber }
 
+fun Bundle.getPayloadBlock() = getBlock(BlockType.PayloadBlock.code)

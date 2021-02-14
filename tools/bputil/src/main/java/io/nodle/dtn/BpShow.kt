@@ -1,7 +1,6 @@
 package io.nodle.dtn
 
-import io.nodle.dtn.bpv7.cborUnmarshalBundle
-import io.nodle.dtn.bpv7.getPayload
+import io.nodle.dtn.bpv7.*
 import picocli.CommandLine
 import java.util.concurrent.Callable
 
@@ -22,17 +21,27 @@ class BpShow : Callable<Void> {
     )
     private var payload = false
 
+    @CommandLine.Option(names = ["--valid"], description = ["use crc-32"])
+    private var validate = false
+
     override fun call(): Void? {
         try {
             val bundle = cborUnmarshalBundle(System.`in`)
             if (payload) {
-                print(String(bundle.getPayload().buffer))
+                print(String((bundle.getPayloadBlock().data as BlobBlockData).buffer))
             } else {
                 print(bundle)
             }
-        } catch (e: Exception) {
-            println("invalid bundle: ${e.message}")
+            if(validate) {
+                bundle.validate()
+                println("\nbundle is valid!")
+            }
+        } catch (e: CborParsingException) {
+            println("\nerror format bundle: ${e.message}")
+        } catch(e : ValidationException) {
+            println("\nerror bundle is not valid: ${e.message}")
         }
+
         return null
     }
 }

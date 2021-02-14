@@ -1,4 +1,4 @@
-package io.nodle.dtn.bpv7
+package io.nodle.dtn.crypto
 
 import io.nodle.dtn.utils.toHex
 import java.io.OutputStream
@@ -12,7 +12,7 @@ abstract class CRC : OutputStream() {
 	abstract fun done(): ByteArray
 }
 
-class NoCRC : CRC() {
+class NullCRC : CRC() {
 	override fun write(p0: Int) {
 		// do nothing
 	}
@@ -21,8 +21,6 @@ class NoCRC : CRC() {
 		return byteArrayOf()
 	}
 }
-
-
 
 /**
  * taken from BP implementation https://upcn.eu/
@@ -163,7 +161,7 @@ val CRC32_TABLE = longArrayOf(
 		0x79b737ba, 0x8bdcb4b9, 0x988c474d, 0x6ae7c44e,
 		0xbe2da0a5, 0x4c4623a6, 0x5f16d052, 0xad7d5351)
 
-class CRC32 : CRC() {
+class CRC32C : CRC() {
     private var sum : Long = 0xffffffff
 	private var str = ""
 

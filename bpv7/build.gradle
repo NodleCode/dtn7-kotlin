@@ -20,7 +20,10 @@ afterEvaluate {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     api group: 'org.slf4j', name:'slf4j-api', version: '1.7.30'
-    
+
+    // crypto
+    api group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.65'
+
     // cbor
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:$jacksonCbor"
 

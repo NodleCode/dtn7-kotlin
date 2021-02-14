@@ -1,36 +1,26 @@
 package io.nodle.dtn.bpv7
 
 import io.nodle.dtn.bpv7.eid.nullDtnEid
+import io.nodle.dtn.utils.LastBufferOutputStream
 import java.net.URI
 
 /**
  * @author Lucien Loiseau on 12/02/21.
  */
-data class PrimaryBlock(
-        var version: Int,
-        var procV7Flags: Long,
-        var crcType: CRCType,
-        var destination: URI,
-        var source: URI,
-        var reportTo: URI,
-        var creationTimestamp: Long,
-        var sequenceNumber: Long,
-        var lifetime: Long,
-        var fragmentOffset: Long = 0,
-        var appDataLength: Long = 0)
-
 var sequenceCounter: Long = 0
 
-fun newPrimaryBlock() = PrimaryBlock(
-        version = 7,
-        procV7Flags = 0,
-        crcType = CRCType.CRC32,
-        destination = nullDtnEid(),
-        source = nullDtnEid(),
-        reportTo = nullDtnEid(),
-        creationTimestamp = System.currentTimeMillis(),
-        sequenceNumber = sequenceCounter++,
-        lifetime = 10000)
+data class PrimaryBlock(
+    var version: Int = 7,
+    var procV7Flags: Long = 0,
+    var crcType: CRCType = CRCType.CRC32,
+    var destination: URI = nullDtnEid(),
+    var source: URI = nullDtnEid(),
+    var reportTo: URI = nullDtnEid(),
+    var creationTimestamp: Long = System.currentTimeMillis(),
+    var sequenceNumber: Long = sequenceCounter++,
+    var lifetime: Long = 10000,
+    var fragmentOffset: Long = 0,
+    var appDataLength: Long = 0)
 
 fun PrimaryBlock.version(v : Int) : PrimaryBlock {
     this.version = v
@@ -74,3 +64,12 @@ fun PrimaryBlock.lifetime(lifetime : Long) : PrimaryBlock {
 
 fun PrimaryBlock.makeBundle() = Bundle(this, ArrayList())
 
+fun PrimaryBlock.checkCRC(crc : ByteArray) : Boolean {
+    val buf = when(crcType) {
+        CRCType.CRC16 -> LastBufferOutputStream(2)
+        CRCType.CRC32 -> LastBufferOutputStream(4)
+        else -> return true
+    }
+    cborMarshal(buf)
+    return buf.last().contentEquals(crc)
+}

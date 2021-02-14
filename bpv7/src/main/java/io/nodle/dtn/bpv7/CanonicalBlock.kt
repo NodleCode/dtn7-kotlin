@@ -1,5 +1,7 @@
 package io.nodle.dtn.bpv7
 
+import io.nodle.dtn.utils.LastBufferOutputStream
+
 /**
  * @author Lucien Loiseau on 12/02/21.
  */
@@ -8,20 +10,24 @@ enum class BlockType(val code: Int) {
     PreviousNodeBlock(6),
     BundleAgeBlock(7),
     HopCountBlock(10),
-    SignatureBlock(196)
+    BlockIntegrityBlock(40),
+    BlockConfidentialityBlock(41),
 }
 
-open class CanonicalBlock(
-        var blockType: Int = 0,
-        var number: Int = 0,
-        var procV7flags: Long = 0,
-        var crcType: CRCType = CRCType.NoCRC)
+data class CanonicalBlock(
+    var blockType: Int = 0,
+    var blockNumber: Int = 0,
+    var procV7flags: Long = 0,
+    var crcType: CRCType = CRCType.NoCRC,
+    var data : ExtensionBlockData = BlobBlockData())
+
+abstract class ExtensionBlockData
 
 fun CanonicalBlock.number(n : Int) : CanonicalBlock {
     if(blockType != BlockType.PayloadBlock.code) {
-        this.number = n
+        this.blockNumber = n
     } else {
-        this.number = 1
+        this.blockNumber = 1
     }
     return this
 }
@@ -38,12 +44,21 @@ fun CanonicalBlock.crcType(type : CRCType) : CanonicalBlock {
 
 fun CanonicalBlock.cloneHeader(other : CanonicalBlock) : CanonicalBlock {
     blockType = other.blockType
-    number = other.number
+    blockNumber = other.blockNumber
     procV7flags = other.procV7flags
     crcType = other.crcType
     return this
 }
 
+fun CanonicalBlock.checkCRC(crc : ByteArray) : Boolean {
+    val buf = when(crcType) {
+        CRCType.CRC16 -> LastBufferOutputStream(2)
+        CRCType.CRC32 -> LastBufferOutputStream(4)
+        else -> return true
+    }
+    cborMarshal(buf)
+    return buf.last().contentEquals(crc)
+}
 
 
 

@@ -4,9 +4,8 @@ import com.fasterxml.jackson.core.JsonToken
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.dataformat.cbor.CBORParser
 import io.nodle.dtn.bpv7.eid.*
+import io.nodle.dtn.bpv7.security.*
 import io.nodle.dtn.utils.isFlagSet
-import org.slf4j.LoggerFactory
-import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.net.URI
@@ -16,11 +15,8 @@ import java.net.URISyntaxException
 /**
  * @author Lucien Loiseau on 12/02/21.
  */
-
 class CborParsingException(msg: String) : Exception(msg)
 class CborBundleEnd : Exception()
-
-private val log = LoggerFactory.getLogger("bpv7-unmarshal")
 
 @Throws(CborParsingException::class)
 fun cborUnmarshalBundle(input : InputStream) : Bundle {
@@ -48,7 +44,7 @@ fun CBORParser.readBundle(): Bundle {
 
 @Throws(CborParsingException::class)
 fun CBORParser.readPrimaryBlock(): PrimaryBlock {
-    val ret = newPrimaryBlock()
+    val ret = PrimaryBlock()
     readStartArray()
     ret.version = readInt()
     ret.procV7Flags = readLong()
@@ -67,6 +63,9 @@ fun CBORParser.readPrimaryBlock(): PrimaryBlock {
     }
     if (ret.crcType != CRCType.NoCRC) {
         val crc = readByteArray()
+        if (!ret.checkCRC(crc)) {
+            throw CborParsingException("wrong crc")
+        }
     }
     readCloseArray()
     return ret
@@ -74,33 +73,74 @@ fun CBORParser.readPrimaryBlock(): PrimaryBlock {
 
 @Throws(CborParsingException::class, CborBundleEnd::class)
 fun CBORParser.readCanonicalBlock(): CanonicalBlock {
-    val header = CanonicalBlock()
+    val block = CanonicalBlock()
     when (val next = nextToken()) {
         JsonToken.START_ARRAY -> {
+            // ok
         }
         JsonToken.END_ARRAY -> throw CborBundleEnd()
         else -> throw CborParsingException("unexpected token: ${next.asString()}")
     }
 
-    header.blockType = readInt()
-    header.number = readInt()
-    header.procV7flags = readLong()
-    header.crcType = CRCType.fromInt(readInt())
-    val ret = when (header.blockType) {
-        BlockType.PayloadBlock.code -> readPayloadBlock(header)
-        else -> throw CborParsingException("block type unsupported")
+    block.blockType = readInt()
+    block.blockNumber = readInt()
+    block.procV7flags = readLong()
+    block.crcType = CRCType.fromInt(readInt())
+
+    val blockDataBuf = readByteArray()
+    when (block.blockType) {
+        BlockType.BlockIntegrityBlock.code, BlockType.BlockConfidentialityBlock.code -> {
+            val asbParser = CBORFactory().createParser(blockDataBuf)
+            block.data = asbParser.readASBlockData()
+        }
+        else -> block.data = BlobBlockData(blockDataBuf)
     }
-    if (ret.crcType != CRCType.NoCRC) {
+
+    if (block.crcType != CRCType.NoCRC) {
         val crc = readByteArray()
+        if (!block.checkCRC(crc)) {
+            throw CborParsingException("wrong crc")
+        }
+    }
+    readCloseArray()
+    return block
+}
+
+@Throws(CborParsingException::class)
+fun CBORParser.readASBlockData(): ExtensionBlockData {
+    val ret = AbstractSecurityBlockData()
+    readStartArray()
+    readArray(false) {
+        ret.securityTargets.add(it.intValue)
+    }
+    ret.securityContext = readInt()
+    ret.securityBlockV7Flags = readLong()
+    ret.securitySource = readEid()
+
+    // security parameters
+    if(ret.hasSecurityParam()) {
+        readArray(false) {
+            assertStartArray()
+            ret.securityContextParameters.add(SecurityContextParameter(readInt(), readByteArray()))
+            readCloseArray()
+        }
+    }
+
+    // security results
+    readArray(false) {
+        assertStartArray()
+        val results = ArrayList<SecurityResult>()
+        readArray(true) {
+            assertStartArray()
+            results.add(SecurityResult(readInt(), readByteArray()))
+            readCloseArray()
+        }
+        ret.securityResults.add(results)
     }
     readCloseArray()
     return ret
 }
 
-@Throws(CborParsingException::class)
-fun CBORParser.readPayloadBlock(header: CanonicalBlock): CanonicalBlock {
-    return PayloadBlock(readByteArray()).cloneHeader(header)
-}
 
 @Throws(CborParsingException::class)
 fun CBORParser.readEid(): URI {
@@ -132,14 +172,35 @@ fun CBORParser.readEid(): URI {
 @Throws(CborParsingException::class)
 fun CBORParser.readStartArray() {
     if (nextToken() != JsonToken.START_ARRAY) {
-        throw CborParsingException("expected start array")
+        throw CborParsingException("expected start array but got $currentName")
+    }
+}
+
+@Throws(CborParsingException::class)
+fun CBORParser.assertStartArray() {
+    if (!isExpectedStartArrayToken) {
+        throw CborParsingException("expected start array but got $currentName")
     }
 }
 
 @Throws(CborParsingException::class)
 fun CBORParser.readCloseArray() {
     if (nextToken() != JsonToken.END_ARRAY) {
-        throw CborParsingException("expected end array")
+        throw CborParsingException("expected end array but got $currentName")
+    }
+}
+
+@Throws(CborParsingException::class)
+fun CBORParser.readArray(prefetch:Boolean, elementParser : (CBORParser) -> Any) {
+    if(!prefetch) {
+        readStartArray()
+    }
+
+    while(true) {
+        if(nextToken() == JsonToken.END_ARRAY) {
+            break
+        }
+        elementParser(this)
     }
 }
 
@@ -147,7 +208,7 @@ fun CBORParser.readCloseArray() {
 fun CBORParser.readInt(): Int {
     val t = nextToken()
     if (!t.isNumeric) {
-        throw CborParsingException("expected number")
+        throw CborParsingException("expected number but got $currentName")
     }
     return intValue
 }
@@ -156,7 +217,7 @@ fun CBORParser.readInt(): Int {
 fun CBORParser.readLong(): Long {
     val t = nextToken()
     if (!t.isNumeric) {
-        throw CborParsingException("expected number")
+        throw CborParsingException("expected number but got $currentName")
     }
     return longValue
 }
@@ -165,7 +226,7 @@ fun CBORParser.readLong(): Long {
 @Throws(CborParsingException::class)
 fun CBORParser.readString(): String {
     if (nextToken() != JsonToken.VALUE_STRING) {
-        throw CborParsingException("expected string")
+        throw CborParsingException("expected string but got $currentName")
     }
     return text
 }
@@ -173,7 +234,7 @@ fun CBORParser.readString(): String {
 @Throws(CborParsingException::class)
 fun CBORParser.readByteArray(): ByteArray {
     if (nextToken() != JsonToken.VALUE_EMBEDDED_OBJECT) {
-        throw CborParsingException("expected byte array")
+        throw CborParsingException("expected byte array but got $currentName")
     }
     val buffer = ByteArrayOutputStream()
     readBinaryValue(buffer)
