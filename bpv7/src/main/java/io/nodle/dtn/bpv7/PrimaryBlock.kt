@@ -1,7 +1,9 @@
 package io.nodle.dtn.bpv7
 
+import com.sun.org.apache.xpath.internal.operations.Bool
 import io.nodle.dtn.bpv7.eid.nullDtnEid
 import io.nodle.dtn.utils.LastBufferOutputStream
+import io.nodle.dtn.utils.isFlagSet
 import java.net.URI
 
 /**
@@ -66,6 +68,8 @@ fun PrimaryBlock.lifetime(lifetime : Long) : PrimaryBlock {
     this.lifetime = lifetime
     return this
 }
+
+fun PrimaryBlock.isFragment() : Boolean = procV7Flags.isFlagSet(BundleV7Flags.FRAGMENT.offset)
 
 fun PrimaryBlock.makeBundle() = Bundle(this, ArrayList())
 

@@ -28,15 +28,15 @@ private val log = LoggerFactory.getLogger("bpv7-marshal")
 
 @Throws(CborEncodingException::class)
 fun Bundle.cborMarshal(out: OutputStream) {
-    val gen = CBORFactory().createGenerator(out)
-    gen.writeStartArray()
-    gen.flush()
-    primaryBlock.cborMarshal(out)
-    for (block in canonicalBlocks) {
-        block.cborMarshal(out)
+    CBORFactory().createGenerator(out).use {
+        it.writeStartArray()
+        it.flush()
+        primaryBlock.cborMarshal(out)
+        for (block in canonicalBlocks) {
+            block.cborMarshal(out)
+        }
+        it.writeEndArray()
     }
-    gen.writeEndArray()
-    gen.flush()
 }
 
 @Throws(CborEncodingException::class)
@@ -49,30 +49,29 @@ fun PrimaryBlock.cborMarshal(out: OutputStream) {
 
     // multiplexing the output stream to compute crc at same time
     val dualOut = DualOutputStream(crc, out)
-    val gen = CBORFactory().createGenerator(dualOut)
-
-    gen.writeStartArray(cborGetItemCount())
-    gen.writeNumber(version)
-    gen.writeNumber(procV7Flags)
-    gen.writeNumber(crcType.ordinal)
-    destination.cborMarshal(gen)
-    source.cborMarshal(gen)
-    reportTo.cborMarshal(gen)
-    gen.writeStartArray(2)
-    gen.writeNumber(creationTimestamp)
-    gen.writeNumber(sequenceNumber)
-    gen.writeEndArray()
-    gen.writeNumber(lifetime)
-    if (procV7Flags.isFlagSet(BundleV7Flags.FRAGMENT.offset)) {
-        gen.writeNumber(fragmentOffset)
-        gen.writeNumber(appDataLength)
+    CBORFactory().createGenerator(dualOut).use {
+        it.writeStartArray(cborGetItemCount())
+        it.writeNumber(version)
+        it.writeNumber(procV7Flags)
+        it.writeNumber(crcType.ordinal)
+        it.cborMarshal(destination)
+        it.cborMarshal(source)
+        it.cborMarshal(reportTo)
+        it.writeStartArray(2)
+        it.writeNumber(creationTimestamp)
+        it.writeNumber(sequenceNumber)
+        it.writeEndArray()
+        it.writeNumber(lifetime)
+        if (procV7Flags.isFlagSet(BundleV7Flags.FRAGMENT.offset)) {
+            it.writeNumber(fragmentOffset)
+            it.writeNumber(appDataLength)
+        }
+        if (crcType != CRCType.NoCRC) {
+            it.flush() // force into the crc
+            it.writeBinary(endCRC(crc).done())
+        }
+        it.writeEndArray()
     }
-    gen.flush() // force into the crc
-    if (crcType != CRCType.NoCRC) {
-        gen.writeBinary(endCRC(crc).done())
-    }
-    gen.writeEndArray()
-    gen.flush() // end cbor stream
 }
 
 fun PrimaryBlock.endCRC(crc: CRC): CRC {
@@ -80,14 +79,14 @@ fun PrimaryBlock.endCRC(crc: CRC): CRC {
     // all bytes (including CBOR "break" characters) of the primary block
     // including the CRC field itself, which for this purpose SHALL be
     // temporarily populated with all bytes set to zero.
-    val crcLast = CBORFactory().createGenerator(crc)
-    when (crcType) {
-        CRCType.CRC16 -> crcLast.writeBinary(byteArrayOf(0, 0))
-        CRCType.CRC32 -> crcLast.writeBinary(byteArrayOf(0, 0, 0, 0))
-        CRCType.NoCRC -> {
+    CBORFactory().createGenerator(crc).use {
+        when (crcType) {
+            CRCType.CRC16 -> it.writeBinary(byteArrayOf(0, 0))
+            CRCType.CRC32 -> it.writeBinary(byteArrayOf(0, 0, 0, 0))
+            CRCType.NoCRC -> {
+            }
         }
     }
-    crcLast.flush()
     return crc
 }
 
@@ -112,57 +111,56 @@ fun CanonicalBlock.cborMarshal(out: OutputStream) {
 
     // multiplexing the output stream to compute crc at same time
     val dualOut = DualOutputStream(crc, out)
-    val gen = CBORFactory().createGenerator(dualOut)
+    CBORFactory().createGenerator(dualOut).use {
+        it.writeStartArray(cborGetItemCount())
+        it.writeNumber(blockType)
+        it.writeNumber(blockNumber)
+        it.writeNumber(procV7flags)
+        it.writeNumber(crcType.ordinal)
+        it.writeBlockData(blockType, data)
 
-    gen.writeStartArray(cborGetItemCount())
-    gen.writeNumber(blockType)
-    gen.writeNumber(blockNumber)
-    gen.writeNumber(procV7flags)
-    gen.writeNumber(crcType.ordinal)
-    writeBlockData(gen)
-
-    if (crcType != CRCType.NoCRC) {
-        gen.flush() // force into the crc
-        gen.writeBinary(endCRC(crc).done())
+        if (crcType != CRCType.NoCRC) {
+            it.flush() // force into the crc
+            it.writeBinary(crc.endCRC(crcType).done())
+        }
+        it.writeEndArray()
     }
-    gen.writeEndArray()
-    gen.flush()
 }
 
-fun CanonicalBlock.writeBlockData(gen: CBORGenerator) {
+fun CBORGenerator.writeBlockData(blockType: Int, data: ExtensionBlockData) {
     val buf = ByteArrayOutputStream()
     when (blockType) {
         BlockType.BlockIntegrityBlock.code -> {
             (data as AbstractSecurityBlockData).cborMarshalData(buf)
-            gen.writeBinary(buf.toByteArray())
+            writeBinary(buf.toByteArray())
         }
         BlockType.BlockConfidentialityBlock.code -> {
             (data as AbstractSecurityBlockData).cborMarshalData(buf)
-            gen.writeBinary(buf.toByteArray())
+            writeBinary(buf.toByteArray())
         }
         BlockType.BundleAgeBlock.code -> {
             (data as BundleAgeBlockData).cborMarshalData(buf)
-            gen.writeBinary(buf.toByteArray())
+            writeBinary(buf.toByteArray())
         }
-        else -> gen.writeBinary((data as BlobBlockData).buffer)
+        else -> writeBinary((data as BlobBlockData).buffer)
     }
 }
 
 
-fun CanonicalBlock.endCRC(crc: CRC): CRC {
+fun CRC.endCRC(crcType: CRCType): CRC {
     // The CRC SHALL be computed over the concatenation of
     // all bytes (including CBOR "break" characters) of the primary block
     // including the CRC field itself, which for this purpose SHALL be
     // temporarily populated with all bytes set to zero.
-    val crcLast = CBORFactory().createGenerator(crc)
-    when (crcType) {
-        CRCType.CRC16 -> crcLast.writeBinary(byteArrayOf(0, 0))
-        CRCType.CRC32 -> crcLast.writeBinary(byteArrayOf(0, 0, 0, 0))
-        CRCType.NoCRC -> {
+    CBORFactory().createGenerator(this).use {
+        when (crcType) {
+            CRCType.CRC16 -> it.writeBinary(byteArrayOf(0, 0))
+            CRCType.CRC32 -> it.writeBinary(byteArrayOf(0, 0, 0, 0))
+            CRCType.NoCRC -> {
+            }
         }
     }
-    crcLast.flush()
-    return crc
+    return this
 }
 
 fun CanonicalBlock.cborGetItemCount(): Int {
@@ -173,27 +171,27 @@ fun CanonicalBlock.cborGetItemCount(): Int {
 }
 
 @Throws(CborEncodingException::class)
-fun URI.cborMarshal(gen: CBORGenerator) {
-    if (isIpnEid()) {
-        gen.writeStartArray(2)
-        gen.writeNumber(EID_IPN_IANA_VALUE)
-        gen.writeArray(intArrayOf(getNodeNumberUnsafe(), getServiceNumberUnsafe()), 0, 2)
-        gen.writeEndArray()
+fun CBORGenerator.cborMarshal(uri : URI) {
+    if (uri.isIpnEid()) {
+        writeStartArray(2)
+        writeNumber(EID_IPN_IANA_VALUE)
+        writeArray(intArrayOf(uri.getNodeNumberUnsafe(), uri.getServiceNumberUnsafe()), 0, 2)
+        writeEndArray()
         return
     }
-    if (isNullEid()) {
-        gen.writeStartArray(2)
-        gen.writeNumber(EID_DTN_IANA_VALUE)
-        gen.writeNumber(0)
-        gen.writeEndArray()
+    if (uri.isNullEid()) {
+        writeStartArray(2)
+        writeNumber(EID_DTN_IANA_VALUE)
+        writeNumber(0)
+        writeEndArray()
         return
     }
-    if (isDtnEid()) {
-        gen.writeStartArray(2)
-        gen.writeNumber(EID_DTN_IANA_VALUE)
-        gen.writeString(schemeSpecificPart)
-        gen.writeEndArray()
+    if (uri.isDtnEid()) {
+        writeStartArray(2)
+        writeNumber(EID_DTN_IANA_VALUE)
+        writeString(uri.schemeSpecificPart)
+        writeEndArray()
         return
     }
-    throw CborEncodingException("eid not supported: ${this.toASCIIString()}")
+    throw CborEncodingException("eid not supported: ${uri.toASCIIString()}")
 }

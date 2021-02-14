@@ -10,46 +10,46 @@ import java.io.OutputStream
  */
 @Throws(CborEncodingException::class)
 fun AbstractSecurityBlockData.cborMarshalData(out: OutputStream) {
-    val gen = CBORFactory().createGenerator(out)
-    gen.writeStartArray(cborGetItemCount())
-    gen.writeStartArray(securityTargets.size)
-    for (target in securityTargets) {
-        gen.writeNumber(target)
-    }
-    gen.writeEndArray()
-    gen.writeNumber(securityContext)
-    gen.writeNumber(securityBlockV7Flags)
-    securitySource.cborMarshal(gen)
-
-    if(hasSecurityParam()) {
-        gen.writeStartArray(securityContextParameters.size)
-        for(p in securityContextParameters) {
-            gen.writeStartArray(2)
-            gen.writeNumber(p.id)
-            gen.writeBinary(p.parameter)
-            gen.writeEndArray()
+    CBORFactory().createGenerator(out).use {
+        it.writeStartArray(cborGetItemCount())
+        it.writeStartArray(securityTargets.size)
+        for (target in securityTargets) {
+            it.writeNumber(target)
         }
-        gen.writeEndArray()
-    }
+        it.writeEndArray()
+        it.writeNumber(securityContext)
+        it.writeNumber(securityBlockV7Flags)
+        it.cborMarshal(securitySource)
 
-    gen.writeStartArray(securityResults.size)
-    for (targetResult in securityResults) {
-        gen.writeStartArray(targetResult.size)
-        for (result in targetResult) {
-            gen.writeStartArray(2)
-            gen.writeNumber(result.id)
-            gen.writeBinary(result.result)
-            gen.writeEndArray()
+        if (hasSecurityParam()) {
+            it.writeStartArray(securityContextParameters.size)
+            for (p in securityContextParameters) {
+                it.writeStartArray(2)
+                it.writeNumber(p.id)
+                it.writeBinary(p.parameter)
+                it.writeEndArray()
+            }
+            it.writeEndArray()
         }
-        gen.writeEndArray()
+
+        it.writeStartArray(securityResults.size)
+        for (targetResult in securityResults) {
+            it.writeStartArray(targetResult.size)
+            for (result in targetResult) {
+                it.writeStartArray(2)
+                it.writeNumber(result.id)
+                it.writeBinary(result.result)
+                it.writeEndArray()
+            }
+            it.writeEndArray()
+        }
+        it.writeEndArray()
+        it.writeEndArray()
     }
-    gen.writeEndArray()
-    gen.writeEndArray()
-    gen.flush()
 }
 
 fun AbstractSecurityBlockData.cborGetItemCount(): Int {
-    if(hasSecurityParam()) {
+    if (hasSecurityParam()) {
         return 6
     }
     return 5
@@ -58,36 +58,27 @@ fun AbstractSecurityBlockData.cborGetItemCount(): Int {
 
 @Throws(CborParsingException::class)
 fun CBORParser.readASBlockData(): AbstractSecurityBlockData {
-    val ret = AbstractSecurityBlockData()
-    readStartArray()
-    readArray(false) {
-        ret.securityTargets.add(it.intValue)
-    }
-    ret.securityContext = readInt()
-    ret.securityBlockV7Flags = readLong()
-    ret.securitySource = readEid()
+    return readStruct(false) {
+        AbstractSecurityBlockData(
+            securityTargets = readArray(false) { it.intValue },
+            securityContext = readInt(),
+            securityBlockV7Flags = readLong(),
+            securitySource = readEid()
+        ).also {
+            // security parameters
+            if (it.hasSecurityParam()) {
+                it.securityContextParameters = readArray(false) {
+                    readStruct(true) { SecurityContextParameter(readInt(), readByteArray()) }
+                }
+            }
 
-    // security parameters
-    if(ret.hasSecurityParam()) {
-        readArray(false) {
-            assertStartArray()
-            ret.securityContextParameters.add(SecurityContextParameter(readInt(), readByteArray()))
-            readCloseArray()
+            // security results
+            it.securityResults = readArray(false) {
+                readArray(true) {
+                    readStruct(true) { SecurityResult(readInt(), readByteArray()) }
+                }
+            }
         }
     }
-
-    // security results
-    readArray(false) {
-        assertStartArray()
-        val results = ArrayList<SecurityResult>()
-        readArray(true) {
-            assertStartArray()
-            results.add(SecurityResult(readInt(), readByteArray()))
-            readCloseArray()
-        }
-        ret.securityResults.add(results)
-    }
-    readCloseArray()
-    return ret
 }
 

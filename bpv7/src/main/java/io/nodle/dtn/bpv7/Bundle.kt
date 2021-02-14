@@ -8,9 +8,13 @@ data class Bundle(
         var primaryBlock: PrimaryBlock,
         var canonicalBlocks: MutableList<CanonicalBlock> = ArrayList())
 
-fun Bundle.addBlock(block: CanonicalBlock): Bundle {
+fun Bundle.addBlock(block: CanonicalBlock, pickNumber : Boolean = true): Bundle {
     if (block.blockType != BlockType.PayloadBlock.code || !hasBlockType(BlockType.PayloadBlock.code)) {
-        canonicalBlocks.add(block.number(canonicalBlocks.size+1))
+        if(pickNumber) {
+            canonicalBlocks.add(block.number(canonicalBlocks.size+1))
+        } else {
+            canonicalBlocks.add(block)
+        }
     }
     canonicalBlocks.sortByDescending { it.blockNumber }
     return this

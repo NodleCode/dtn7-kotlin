@@ -70,6 +70,7 @@ class BundleEncodeTest {
     @Throws(Exception::class)
     fun testEncodeDecode(bundle : Bundle) {
         try {
+            println(bundle.toString())
             bundle.checkValid()
 
             // encode

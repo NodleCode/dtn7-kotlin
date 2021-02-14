@@ -17,12 +17,12 @@ fun ageBlock(age : Long) : CanonicalBlock = CanonicalBlock(
 
 @Throws(CborEncodingException::class)
 fun BundleAgeBlockData.cborMarshalData(out: OutputStream) {
-    val gen = CBORFactory().createGenerator(out)
-    gen.writeNumber(age)
-    gen.flush()
+    CBORFactory().createGenerator(out).use {
+        it.writeNumber(age)
+    }
 }
 
 @Throws(CborParsingException::class)
 fun CBORParser.readBundleAgeBlockData() : BundleAgeBlockData {
-    return BundleAgeBlockData(readLong())
+    return BundleAgeBlockData(age = readLong())
 }

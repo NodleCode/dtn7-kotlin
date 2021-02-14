@@ -3,8 +3,11 @@ package io.nodle.dtn.bpv7
 import com.fasterxml.jackson.core.JsonToken
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.dataformat.cbor.CBORParser
-import io.nodle.dtn.bpv7.eid.*
-import io.nodle.dtn.bpv7.bpsec.*
+import io.nodle.dtn.bpv7.bpsec.readASBlockData
+import io.nodle.dtn.bpv7.eid.EID_DTN_IANA_VALUE
+import io.nodle.dtn.bpv7.eid.EID_IPN_IANA_VALUE
+import io.nodle.dtn.bpv7.eid.createIpn
+import io.nodle.dtn.bpv7.eid.nullDtnEid
 import io.nodle.dtn.bpv7.extensions.readBundleAgeBlockData
 import io.nodle.dtn.utils.isFlagSet
 import java.io.ByteArrayOutputStream
@@ -17,10 +20,9 @@ import java.net.URISyntaxException
  * @author Lucien Loiseau on 12/02/21.
  */
 class CborParsingException(msg: String) : Exception(msg)
-class CborBundleEnd : Exception()
 
 @Throws(CborParsingException::class)
-fun cborUnmarshalBundle(input : InputStream) : Bundle {
+fun cborUnmarshalBundle(input: InputStream): Bundle {
     return CBORFactory()
         .createParser(input)
         .readBundle()
@@ -29,117 +31,113 @@ fun cborUnmarshalBundle(input : InputStream) : Bundle {
 @Throws(CborParsingException::class)
 fun CBORParser.readBundle(): Bundle {
     readStartArray()
-    val ret = readPrimaryBlock().makeBundle()
-
-    // parse until we either reach end of bundle or parsing exception
-    try {
-        while (true) {
-            ret.canonicalBlocks.add(readCanonicalBlock())
+    return readPrimaryBlock()
+        .makeBundle()
+        .also {
+            while (true) {
+                if (nextToken() == JsonToken.END_ARRAY) {
+                    break
+                }
+                it.addBlock(readCanonicalBlock(true), false)
+            }
         }
-    } catch (bundleEnd: CborBundleEnd) {
-        return ret
-    } catch (e: Exception) {
-        throw e
-    }
 }
 
 @Throws(CborParsingException::class)
 fun CBORParser.readPrimaryBlock(): PrimaryBlock {
-    val ret = PrimaryBlock()
-    readStartArray()
-    ret.version = readInt()
-    ret.procV7Flags = readLong()
-    ret.crcType = CRCType.fromInt(readInt())
-    ret.destination = readEid()
-    ret.source = readEid()
-    ret.reportTo = readEid()
-    readStartArray()
-    ret.creationTimestamp = readLong()
-    ret.sequenceNumber = readLong()
-    readCloseArray()
-    ret.lifetime = readLong()
-    if (ret.procV7Flags.isFlagSet(BundleV7Flags.FRAGMENT.offset)) {
-        ret.fragmentOffset = readLong()
-        ret.appDataLength = readLong()
-    }
-    if (ret.crcType != CRCType.NoCRC) {
-        val crc = readByteArray()
-        if (!ret.checkCRC(crc)) {
-            throw CborParsingException("wrong crc")
-        }
-    }
-    readCloseArray()
-    return ret
-}
+    return readStruct(false) {
+        PrimaryBlock(
+            version = readInt(),
+            procV7Flags = readLong(),
+            crcType = CRCType.fromInt(readInt()),
+            destination = readEid(),
+            source = readEid(),
+            reportTo = readEid(),
+            creationTimestamp = let { readStartArray(); readLong() },
+            sequenceNumber = readLong(),
+            lifetime = let { readCloseArray(); readLong() },
+        ).also { primary ->
+            // fragment specific information
+            if (primary.procV7Flags.isFlagSet(BundleV7Flags.FRAGMENT.offset)) {
+                primary.fragmentOffset = readLong()
+                primary.appDataLength = readLong()
+            }
 
-@Throws(CborParsingException::class, CborBundleEnd::class)
-fun CBORParser.readCanonicalBlock(): CanonicalBlock {
-    val block = CanonicalBlock()
-    when (val next = nextToken()) {
-        JsonToken.START_ARRAY -> {
-            // ok
-        }
-        JsonToken.END_ARRAY -> throw CborBundleEnd()
-        else -> throw CborParsingException("unexpected token: ${next.asString()}")
-    }
-
-    block.blockType = readInt()
-    block.blockNumber = readInt()
-    block.procV7flags = readLong()
-    block.crcType = CRCType.fromInt(readInt())
-
-    val blockDataBuf = readByteArray()
-    when (block.blockType) {
-        BlockType.BlockIntegrityBlock.code -> {
-            val asbParser = CBORFactory().createParser(blockDataBuf)
-            block.data = asbParser.readASBlockData()
-        }
-        BlockType.BlockConfidentialityBlock.code -> {
-            val asbParser = CBORFactory().createParser(blockDataBuf)
-            block.data = asbParser.readASBlockData()
-        }
-        BlockType.BundleAgeBlock.code -> {
-            val ageParser = CBORFactory().createParser(blockDataBuf)
-            block.data = ageParser.readBundleAgeBlockData()
-        }
-        else -> block.data = BlobBlockData(blockDataBuf)
-    }
-
-    if (block.crcType != CRCType.NoCRC) {
-        val crc = readByteArray()
-        if (!block.checkCRC(crc)) {
-            throw CborParsingException("wrong crc")
-        }
-    }
-    readCloseArray()
-    return block
-}
-
-@Throws(CborParsingException::class)
-fun CBORParser.readEid(): URI {
-    readStartArray()
-    var eid = nullDtnEid()
-    when (readInt()) {
-        EID_IPN_IANA_VALUE -> return createIpn(readInt(), readInt())
-        EID_DTN_IANA_VALUE -> {
-            val t = nextToken()
-            if (t.isNumeric) {
-                val zero = intValue
-                if (zero != 0) {
-                    throw CborParsingException("eid format exception")
-                }
-            } else {
-                try {
-                    eid = URI("dtn:$text")
-                } catch (e : URISyntaxException) {
-                    throw CborParsingException("invalid dtn eid: ${e.reason}");
+            // check CRC
+            if (primary.crcType != CRCType.NoCRC) {
+                val crc = readByteArray()
+                if (!primary.checkCRC(crc)) {
+                    throw CborParsingException("wrong crc")
                 }
             }
         }
-        else -> throw CborParsingException("eid unsupported")
     }
-    readCloseArray()
-    return eid
+}
+
+@Throws(CborParsingException::class)
+fun CBORParser.readCanonicalBlock(prefetch: Boolean): CanonicalBlock {
+    return readStruct(prefetch) {
+        CanonicalBlock(
+            blockType = readInt(),
+            blockNumber = readInt(),
+            procV7flags = readLong(),
+            crcType = CRCType.fromInt(readInt())
+        ).also { block ->
+            // parse block specific data
+            val blockDataBuf = readByteArray()
+            when (block.blockType) {
+                BlockType.BlockIntegrityBlock.code -> {
+                    val asbParser = CBORFactory().createParser(blockDataBuf)
+                    block.data = asbParser.readASBlockData()
+                }
+                BlockType.BlockConfidentialityBlock.code -> {
+                    val asbParser = CBORFactory().createParser(blockDataBuf)
+                    block.data = asbParser.readASBlockData()
+                }
+                BlockType.BundleAgeBlock.code -> {
+                    val ageParser = CBORFactory().createParser(blockDataBuf)
+                    block.data = ageParser.readBundleAgeBlockData()
+                }
+                else -> block.data = BlobBlockData(blockDataBuf)
+            }
+
+            // check CRC
+            if (block.crcType != CRCType.NoCRC) {
+                val crc = readByteArray()
+                if (!block.checkCRC(crc)) {
+                    throw CborParsingException("wrong crc")
+                }
+            }
+        }
+    }
+}
+
+@Throws(CborParsingException::class)
+fun CBORParser.readCanonicalBlock() = readCanonicalBlock(false)
+
+@Throws(CborParsingException::class)
+fun CBORParser.readEid(): URI {
+    return readStruct(false) {
+        try {
+            when (readInt()) {
+                EID_IPN_IANA_VALUE -> createIpn(readInt(), readInt())
+                EID_DTN_IANA_VALUE -> {
+                    val t = nextToken()
+                    if (t.isNumeric) {
+                        check(0 == intValue)
+                        nullDtnEid()
+                    } else {
+                        URI("dtn:$text")
+                    }
+                }
+                else -> throw CborParsingException("eid unsupported")
+            }
+        } catch (e: URISyntaxException) {
+            throw CborParsingException("invalid dtn eid: ${e.message}");
+        } catch (e: IllegalStateException) {
+            throw CborParsingException("invalid eid: ${e.message}");
+        }
+    }
 }
 
 @Throws(CborParsingException::class)
@@ -164,19 +162,41 @@ fun CBORParser.readCloseArray() {
 }
 
 @Throws(CborParsingException::class)
-fun CBORParser.readArray(prefetch:Boolean, elementParser : (CBORParser) -> Any) {
-    if(!prefetch) {
+fun <T : Any> CBORParser.readArray(
+    prefetch: Boolean,
+    elementParser: (CBORParser) -> T
+): MutableList<T> {
+    if (!prefetch) {
         readStartArray()
+    } else {
+        assertStartArray()
     }
 
-    while(true) {
-        if(nextToken() == JsonToken.END_ARRAY) {
+    val ret = ArrayList<T>()
+    while (true) {
+        if (nextToken() == JsonToken.END_ARRAY) {
             break
         }
-        // careful! we cannot rewind the parser so first token of element is already fetched!
-        elementParser(this)
+        ret.add(elementParser(this))
+    }
+    return ret
+}
+
+@Throws(CborParsingException::class)
+fun <T : Any> CBORParser.readStruct(prefetch: Boolean, elementParser: (CBORParser) -> T): T {
+    if (!prefetch) {
+        readStartArray()
+    } else {
+        assertStartArray()
+    }
+
+    try {
+        return elementParser(this)
+    } finally {
+        readCloseArray()
     }
 }
+
 
 @Throws(CborParsingException::class)
 fun CBORParser.readInt(): Int {
