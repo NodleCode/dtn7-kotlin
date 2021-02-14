@@ -16,6 +16,22 @@ import java.net.URI
  * @author Lucien Loiseau on 12/02/21.
  */
 class BundleEncodeTest {
+
+    @Test
+    fun testSimpleBundleBufferEncoding() {
+        val testPayload = byteArrayOf(0xca.toByte(), 0xfe.toByte(), 0, 0xfe.toByte(), 0xca.toByte())
+        val bundle = PrimaryBlock()
+            .destination(URI.create("dtn://nodle/dtn-router"))
+            .source(URI.create("dtn://test-sdk/"))
+            .makeBundle()
+            .addBlock(payloadBlock(testPayload).crcType(CRCType.CRC32))
+        try {
+            Assert.assertEquals(bundle, cborUnmarshalBundle(bundle.cborMarshal()))
+        } catch (e : CborEncodingException) {
+            Assert.fail()
+        }
+    }
+
     @Test
     fun testSimpleBundle() {
         val testPayload = byteArrayOf(0xca.toByte(), 0xfe.toByte(), 0, 0xfe.toByte(), 0xca.toByte())

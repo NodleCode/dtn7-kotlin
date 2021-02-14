@@ -6,7 +6,7 @@ package io.nodle.dtn.bpv7
 
 data class Bundle(
         var primaryBlock: PrimaryBlock,
-        var canonicalBlocks: MutableList<CanonicalBlock> = ArrayList())
+        var canonicalBlocks: MutableList<CanonicalBlock> = ArrayList()) 
 
 fun Bundle.addBlock(block: CanonicalBlock, pickNumber : Boolean = true): Bundle {
     if (block.blockType != BlockType.PayloadBlock.code || !hasBlockType(BlockType.PayloadBlock.code)) {

@@ -3,6 +3,7 @@ package io.nodle.dtn.bpv7.extensions
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.dataformat.cbor.CBORParser
 import io.nodle.dtn.bpv7.*
+import io.nodle.dtn.utils.readLong
 import java.io.OutputStream
 
 /**

@@ -1,6 +1,5 @@
 package io.nodle.dtn.bpv7
 
-import com.sun.org.apache.xpath.internal.operations.Bool
 import io.nodle.dtn.bpv7.eid.nullDtnEid
 import io.nodle.dtn.utils.LastBufferOutputStream
 import io.nodle.dtn.utils.isFlagSet

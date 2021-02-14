@@ -6,6 +6,7 @@ import io.nodle.dtn.bpv7.bpsec.AbstractSecurityBlockData
 import io.nodle.dtn.bpv7.bpsec.cborMarshalData
 import io.nodle.dtn.bpv7.eid.*
 import io.nodle.dtn.bpv7.extensions.BundleAgeBlockData
+import io.nodle.dtn.bpv7.extensions.HopCountBlockData
 import io.nodle.dtn.bpv7.extensions.cborMarshalData
 import io.nodle.dtn.crypto.CRC
 import io.nodle.dtn.crypto.CRC16X25
@@ -13,7 +14,7 @@ import io.nodle.dtn.crypto.CRC32C
 import io.nodle.dtn.crypto.NullCRC
 import io.nodle.dtn.utils.DualOutputStream
 import io.nodle.dtn.utils.isFlagSet
-import org.slf4j.LoggerFactory
+import io.nodle.dtn.utils.putElement
 import java.io.ByteArrayOutputStream
 import java.io.OutputStream
 import java.net.URI
@@ -24,7 +25,31 @@ import java.net.URI
 
 class CborEncodingException(msg: String) : Exception(msg)
 
-private val log = LoggerFactory.getLogger("bpv7-marshal")
+val extensionBlockMarshalerRegister = HashMap<Int, (ExtensionBlockData, OutputStream) -> Any>()
+    .putElement(BlockType.BlockIntegrityBlock.code,
+        { data, out ->
+            (data as AbstractSecurityBlockData).cborMarshalData(out)
+        })
+    .putElement(BlockType.BlockConfidentialityBlock.code,
+        { data, out ->
+            (data as AbstractSecurityBlockData).cborMarshalData(out)
+        })
+    .putElement(BlockType.BundleAgeBlock.code,
+        { data, out ->
+            (data as BundleAgeBlockData).cborMarshalData(out)
+        })
+    .putElement(BlockType.HopCountBlock.code,
+        { data, out ->
+            (data as HopCountBlockData).cborMarshalData(out)
+        })
+
+@Throws(CborEncodingException::class)
+fun Bundle.cborMarshal() : ByteArray {
+    return ByteArrayOutputStream().use {
+        this.cborMarshal(it)
+        it.toByteArray()
+    }
+}
 
 @Throws(CborEncodingException::class)
 fun Bundle.cborMarshal(out: OutputStream) {
@@ -128,21 +153,12 @@ fun CanonicalBlock.cborMarshal(out: OutputStream) {
 }
 
 fun CBORGenerator.writeBlockData(blockType: Int, data: ExtensionBlockData) {
-    val buf = ByteArrayOutputStream()
-    when (blockType) {
-        BlockType.BlockIntegrityBlock.code -> {
-            (data as AbstractSecurityBlockData).cborMarshalData(buf)
-            writeBinary(buf.toByteArray())
-        }
-        BlockType.BlockConfidentialityBlock.code -> {
-            (data as AbstractSecurityBlockData).cborMarshalData(buf)
-            writeBinary(buf.toByteArray())
-        }
-        BlockType.BundleAgeBlock.code -> {
-            (data as BundleAgeBlockData).cborMarshalData(buf)
-            writeBinary(buf.toByteArray())
-        }
-        else -> writeBinary((data as BlobBlockData).buffer)
+    extensionBlockMarshalerRegister[blockType]?.let {
+        val buf = ByteArrayOutputStream()
+        it(data, buf)
+        writeBinary(buf.toByteArray())
+    } ?: run {
+        writeBinary((data as BlobBlockData).buffer)
     }
 }
 
@@ -171,7 +187,7 @@ fun CanonicalBlock.cborGetItemCount(): Int {
 }
 
 @Throws(CborEncodingException::class)
-fun CBORGenerator.cborMarshal(uri : URI) {
+fun CBORGenerator.cborMarshal(uri: URI) {
     if (uri.isIpnEid()) {
         writeStartArray(2)
         writeNumber(EID_IPN_IANA_VALUE)

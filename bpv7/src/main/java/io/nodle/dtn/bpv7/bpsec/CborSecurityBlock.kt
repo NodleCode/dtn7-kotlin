@@ -3,6 +3,7 @@ package io.nodle.dtn.bpv7.bpsec
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.dataformat.cbor.CBORParser
 import io.nodle.dtn.bpv7.*
+import io.nodle.dtn.utils.*
 import java.io.OutputStream
 
 /**
@@ -60,20 +61,20 @@ fun AbstractSecurityBlockData.cborGetItemCount(): Int {
 fun CBORParser.readASBlockData(): AbstractSecurityBlockData {
     return readStruct(false) {
         AbstractSecurityBlockData(
-            securityTargets = readArray(false) { it.intValue },
+            securityTargets = readArray() { it.intValue },
             securityContext = readInt(),
             securityBlockV7Flags = readLong(),
             securitySource = readEid()
         ).also {
             // security parameters
             if (it.hasSecurityParam()) {
-                it.securityContextParameters = readArray(false) {
+                it.securityContextParameters = readArray() {
                     readStruct(true) { SecurityContextParameter(readInt(), readByteArray()) }
                 }
             }
 
             // security results
-            it.securityResults = readArray(false) {
+            it.securityResults = readArray() {
                 readArray(true) {
                     readStruct(true) { SecurityResult(readInt(), readByteArray()) }
                 }
