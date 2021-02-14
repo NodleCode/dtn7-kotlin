@@ -1,4 +1,4 @@
-package io.nodle.dtn.bpv7.security
+package io.nodle.dtn.bpv7.bpsec
 
 import io.nodle.dtn.bpv7.ExtensionBlockData
 import io.nodle.dtn.bpv7.eid.nullDtnEid
@@ -29,7 +29,7 @@ data class AbstractSecurityBlockData(
     var securitySource: URI = nullDtnEid(),
     var securityContextParameters: MutableList<SecurityContextParameter> = ArrayList(),
     var securityResults: MutableList<MutableList<SecurityResult>> = ArrayList()
-) : ExtensionBlockData()
+) : ExtensionBlockData
 
 fun AbstractSecurityBlockData.hasSecurityParam() : Boolean {
     return securityBlockV7Flags.isFlagSet(SecurityBlockV7Flags.CONTEXT_PARAMETERS_PRESENT.offset)

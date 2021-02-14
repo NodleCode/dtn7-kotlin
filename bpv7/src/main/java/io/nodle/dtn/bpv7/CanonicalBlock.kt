@@ -1,6 +1,8 @@
 package io.nodle.dtn.bpv7
 
+import com.fasterxml.jackson.dataformat.cbor.CBORParser
 import io.nodle.dtn.utils.LastBufferOutputStream
+import java.io.OutputStream
 
 /**
  * @author Lucien Loiseau on 12/02/21.
@@ -21,7 +23,7 @@ data class CanonicalBlock(
     var crcType: CRCType = CRCType.NoCRC,
     var data : ExtensionBlockData = BlobBlockData())
 
-abstract class ExtensionBlockData
+interface ExtensionBlockData
 
 fun CanonicalBlock.number(n : Int) : CanonicalBlock {
     if(blockType != BlockType.PayloadBlock.code) {

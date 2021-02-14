@@ -4,7 +4,8 @@ import com.fasterxml.jackson.core.JsonToken
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.dataformat.cbor.CBORParser
 import io.nodle.dtn.bpv7.eid.*
-import io.nodle.dtn.bpv7.security.*
+import io.nodle.dtn.bpv7.bpsec.*
+import io.nodle.dtn.bpv7.extensions.readBundleAgeBlockData
 import io.nodle.dtn.utils.isFlagSet
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
@@ -89,9 +90,17 @@ fun CBORParser.readCanonicalBlock(): CanonicalBlock {
 
     val blockDataBuf = readByteArray()
     when (block.blockType) {
-        BlockType.BlockIntegrityBlock.code, BlockType.BlockConfidentialityBlock.code -> {
+        BlockType.BlockIntegrityBlock.code -> {
             val asbParser = CBORFactory().createParser(blockDataBuf)
             block.data = asbParser.readASBlockData()
+        }
+        BlockType.BlockConfidentialityBlock.code -> {
+            val asbParser = CBORFactory().createParser(blockDataBuf)
+            block.data = asbParser.readASBlockData()
+        }
+        BlockType.BundleAgeBlock.code -> {
+            val ageParser = CBORFactory().createParser(blockDataBuf)
+            block.data = ageParser.readBundleAgeBlockData()
         }
         else -> block.data = BlobBlockData(blockDataBuf)
     }
@@ -105,42 +114,6 @@ fun CBORParser.readCanonicalBlock(): CanonicalBlock {
     readCloseArray()
     return block
 }
-
-@Throws(CborParsingException::class)
-fun CBORParser.readASBlockData(): ExtensionBlockData {
-    val ret = AbstractSecurityBlockData()
-    readStartArray()
-    readArray(false) {
-        ret.securityTargets.add(it.intValue)
-    }
-    ret.securityContext = readInt()
-    ret.securityBlockV7Flags = readLong()
-    ret.securitySource = readEid()
-
-    // security parameters
-    if(ret.hasSecurityParam()) {
-        readArray(false) {
-            assertStartArray()
-            ret.securityContextParameters.add(SecurityContextParameter(readInt(), readByteArray()))
-            readCloseArray()
-        }
-    }
-
-    // security results
-    readArray(false) {
-        assertStartArray()
-        val results = ArrayList<SecurityResult>()
-        readArray(true) {
-            assertStartArray()
-            results.add(SecurityResult(readInt(), readByteArray()))
-            readCloseArray()
-        }
-        ret.securityResults.add(results)
-    }
-    readCloseArray()
-    return ret
-}
-
 
 @Throws(CborParsingException::class)
 fun CBORParser.readEid(): URI {
@@ -200,6 +173,7 @@ fun CBORParser.readArray(prefetch:Boolean, elementParser : (CBORParser) -> Any) 
         if(nextToken() == JsonToken.END_ARRAY) {
             break
         }
+        // careful! we cannot rewind the parser so first token of element is already fetched!
         elementParser(this)
     }
 }

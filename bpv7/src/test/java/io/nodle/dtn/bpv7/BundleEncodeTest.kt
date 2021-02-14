@@ -1,7 +1,8 @@
 package io.nodle.dtn.bpv7
 
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
-import io.nodle.dtn.bpv7.security.addEd25519Signature
+import io.nodle.dtn.bpv7.bpsec.addEd25519Signature
+import io.nodle.dtn.bpv7.extensions.ageBlock
 import io.nodle.dtn.crypto.Ed25519Util
 import io.nodle.dtn.utils.hexToBa
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters
@@ -16,18 +17,60 @@ import java.net.URI
  */
 class BundleEncodeTest {
     @Test
-    fun testBundleEncoding() {
+    fun testSimpleBundle() {
         val testPayload = byteArrayOf(0xca.toByte(), 0xfe.toByte(), 0, 0xfe.toByte(), 0xca.toByte())
-        val keyPair = Ed25519Util.generateEd25519KeyPair()
         val bundle = PrimaryBlock()
                 .destination(URI.create("dtn://nodle/dtn-router"))
                 .source(URI.create("dtn://test-sdk/"))
                 .makeBundle()
                 .addBlock(payloadBlock(testPayload).crcType(CRCType.CRC32))
-                .addEd25519Signature(keyPair.private as Ed25519PrivateKeyParameters, listOf(0,1))
+        testEncodeDecode(bundle)
+    }
 
+    @Test
+    fun testAgeBlockBundle() {
+        val testPayload = byteArrayOf(0xca.toByte(), 0xfe.toByte(), 0, 0xfe.toByte(), 0xca.toByte())
+        val bundle = PrimaryBlock()
+            .destination(URI.create("dtn://nodle/dtn-router"))
+            .source(URI.create("dtn://test-sdk/"))
+            .creationTimestamp(0)
+            .makeBundle()
+            .addBlock(payloadBlock(testPayload).crcType(CRCType.CRC32))
+            .addBlock(ageBlock(5000))
+        testEncodeDecode(bundle)
+    }
+
+    @Test
+    fun testBundleSignature() {
+        val testPayload = byteArrayOf(0xca.toByte(), 0xfe.toByte(), 0, 0xfe.toByte(), 0xca.toByte())
+        val keyPair = Ed25519Util.generateEd25519KeyPair()
+        val bundle = PrimaryBlock()
+            .destination(URI.create("dtn://nodle/dtn-router"))
+            .source(URI.create("dtn://test-sdk/"))
+            .makeBundle()
+            .addBlock(payloadBlock(testPayload).crcType(CRCType.CRC32))
+            .addEd25519Signature(keyPair.private as Ed25519PrivateKeyParameters, listOf(0,1))
+        testEncodeDecode(bundle)
+    }
+
+    @Test
+    fun testBundleSignature2() {
+        val testPayload = byteArrayOf(0xca.toByte(), 0xfe.toByte(), 0, 0xfe.toByte(), 0xca.toByte())
+        val keyPair = Ed25519Util.generateEd25519KeyPair()
+        val bundle = PrimaryBlock()
+            .destination(URI.create("dtn://nodle/dtn-router"))
+            .source(URI.create("dtn://test-sdk/"))
+            .crcType(CRCType.NoCRC)
+            .makeBundle()
+            .addBlock(payloadBlock(testPayload).crcType(CRCType.CRC32))
+            .addEd25519Signature(keyPair.private as Ed25519PrivateKeyParameters, listOf(0,1))
+        testEncodeDecode(bundle)
+    }
+
+    @Throws(Exception::class)
+    fun testEncodeDecode(bundle : Bundle) {
         try {
-            bundle.validate()
+            bundle.checkValid()
 
             // encode
             val buffer = ByteArrayOutputStream()
@@ -39,14 +82,14 @@ class BundleEncodeTest {
             println(parsedBundle.toString())
             Assert.assertEquals(bundle, parsedBundle)
 
-            parsedBundle.validate()
+            parsedBundle.checkValid()
         } catch (e : CborEncodingException) {
             Assert.fail()
         }
     }
 
     @Test
-    fun testBadBundleEncoding() {
+    fun testBadBundle() {
         val testPayload = "cafe00feca".hexToBa()
 
         val bundle = PrimaryBlock()

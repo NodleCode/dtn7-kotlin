@@ -52,6 +52,11 @@ fun PrimaryBlock.reportTo(uri : URI) : PrimaryBlock {
     return this
 }
 
+fun PrimaryBlock.creationTimestamp(timestamp : Long) : PrimaryBlock {
+    this.creationTimestamp = timestamp
+    return this
+}
+
 fun PrimaryBlock.sequenceNumber(sequence : Long) : PrimaryBlock {
     this.sequenceNumber = sequence
     return this
@@ -63,6 +68,8 @@ fun PrimaryBlock.lifetime(lifetime : Long) : PrimaryBlock {
 }
 
 fun PrimaryBlock.makeBundle() = Bundle(this, ArrayList())
+
+fun PrimaryBlock.hasCRC() : Boolean = (crcType != CRCType.NoCRC)
 
 fun PrimaryBlock.checkCRC(crc : ByteArray) : Boolean {
     val buf = when(crcType) {

@@ -7,6 +7,15 @@ import java.net.URISyntaxException
  * @author Lucien Loiseau on 04/09/20.
  */
 
+
+fun URI.checkValidEid() {
+    checkSchemeNotNull()
+    when(scheme) {
+        "dtn" -> checkValidDtnEid()
+        "ipn" -> checkValidIpnEid()
+    }
+}
+
 /**
  * return only the endpoint part of the URI, that is without the query string nor the fragment.
  * this is only valid for dtn-eid.

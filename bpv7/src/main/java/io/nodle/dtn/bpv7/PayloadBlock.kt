@@ -5,7 +5,7 @@ import io.nodle.dtn.utils.toHex
 /**
  * @author Lucien Loiseau on 14/02/21.
  */
-data class BlobBlockData(var buffer: ByteArray = byteArrayOf()) : ExtensionBlockData() {
+data class BlobBlockData(var buffer: ByteArray = byteArrayOf()) : ExtensionBlockData {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is BlobBlockData) return false

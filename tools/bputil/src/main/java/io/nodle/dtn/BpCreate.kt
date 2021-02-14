@@ -1,7 +1,8 @@
 package io.nodle.dtn
 
 import io.nodle.dtn.bpv7.*
-import io.nodle.dtn.bpv7.security.addEd25519Signature
+import io.nodle.dtn.bpv7.bpsec.addEd25519Signature
+import io.nodle.dtn.bpv7.extensions.ageBlock
 import io.nodle.dtn.crypto.toEd25519PrivateKey
 import io.nodle.dtn.utils.hexToBa
 import picocli.CommandLine
@@ -31,6 +32,9 @@ class BpCreate : Callable<Void> {
     @CommandLine.Option(names = ["-l", "--lifetime"], description = ["lifetime of the bundle"])
     private var lifetime: Long = 0
 
+    @CommandLine.Option(names = ["--age"], description = ["add an age block (set timestamp to 0)"])
+    private var age: Long = 0
+
     @CommandLine.Option(names = ["--sign"], description = ["sign blocks (require --key to be set)"])
     private var targets: List<Int> = ArrayList()
 
@@ -58,6 +62,11 @@ class BpCreate : Callable<Void> {
             .lifetime(lifetime)
             .makeBundle()
             .addBlock(payloadBlock(System.`in`.readBytes()).crcType(crc))
+
+        if (age > 0L) {
+            bundle.primaryBlock.creationTimestamp(0)
+            bundle.addBlock(ageBlock(age))
+        }
 
         if (targets.isNotEmpty()) {
             if(hexKey == "") {

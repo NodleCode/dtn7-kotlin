@@ -2,10 +2,11 @@ package io.nodle.dtn.bpv7
 
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.dataformat.cbor.CBORGenerator
+import io.nodle.dtn.bpv7.bpsec.AbstractSecurityBlockData
+import io.nodle.dtn.bpv7.bpsec.cborMarshalData
 import io.nodle.dtn.bpv7.eid.*
-import io.nodle.dtn.bpv7.security.AbstractSecurityBlockData
-import io.nodle.dtn.bpv7.security.SecurityBlockV7Flags
-import io.nodle.dtn.bpv7.security.hasSecurityParam
+import io.nodle.dtn.bpv7.extensions.BundleAgeBlockData
+import io.nodle.dtn.bpv7.extensions.cborMarshalData
 import io.nodle.dtn.crypto.CRC
 import io.nodle.dtn.crypto.CRC16X25
 import io.nodle.dtn.crypto.CRC32C
@@ -40,10 +41,6 @@ fun Bundle.cborMarshal(out: OutputStream) {
 
 @Throws(CborEncodingException::class)
 fun PrimaryBlock.cborMarshal(out: OutputStream) {
-    if (crcType == CRCType.NoCRC) {
-        throw CborEncodingException("crc missing")
-    }
-
     val crc = when (crcType) {
         CRCType.NoCRC -> NullCRC()
         CRCType.CRC16 -> CRC16X25()
@@ -71,7 +68,9 @@ fun PrimaryBlock.cborMarshal(out: OutputStream) {
         gen.writeNumber(appDataLength)
     }
     gen.flush() // force into the crc
-    gen.writeBinary(endCRC(crc).done())
+    if (crcType != CRCType.NoCRC) {
+        gen.writeBinary(endCRC(crc).done())
+    }
     gen.writeEndArray()
     gen.flush() // end cbor stream
 }
@@ -120,15 +119,7 @@ fun CanonicalBlock.cborMarshal(out: OutputStream) {
     gen.writeNumber(blockNumber)
     gen.writeNumber(procV7flags)
     gen.writeNumber(crcType.ordinal)
-
-    when (blockType) {
-        BlockType.BlockIntegrityBlock.code, BlockType.BlockConfidentialityBlock.code -> {
-            val buf = ByteArrayOutputStream()
-            (data as AbstractSecurityBlockData).cborMarshalData(buf)
-            gen.writeBinary(buf.toByteArray())
-        }
-        else -> gen.writeBinary((data as BlobBlockData).buffer)
-    }
+    writeBlockData(gen)
 
     if (crcType != CRCType.NoCRC) {
         gen.flush() // force into the crc
@@ -137,6 +128,26 @@ fun CanonicalBlock.cborMarshal(out: OutputStream) {
     gen.writeEndArray()
     gen.flush()
 }
+
+fun CanonicalBlock.writeBlockData(gen: CBORGenerator) {
+    val buf = ByteArrayOutputStream()
+    when (blockType) {
+        BlockType.BlockIntegrityBlock.code -> {
+            (data as AbstractSecurityBlockData).cborMarshalData(buf)
+            gen.writeBinary(buf.toByteArray())
+        }
+        BlockType.BlockConfidentialityBlock.code -> {
+            (data as AbstractSecurityBlockData).cborMarshalData(buf)
+            gen.writeBinary(buf.toByteArray())
+        }
+        BlockType.BundleAgeBlock.code -> {
+            (data as BundleAgeBlockData).cborMarshalData(buf)
+            gen.writeBinary(buf.toByteArray())
+        }
+        else -> gen.writeBinary((data as BlobBlockData).buffer)
+    }
+}
+
 
 fun CanonicalBlock.endCRC(crc: CRC): CRC {
     // The CRC SHALL be computed over the concatenation of
@@ -159,53 +170,6 @@ fun CanonicalBlock.cborGetItemCount(): Int {
         return 5
     }
     return 6
-}
-
-@Throws(CborEncodingException::class)
-fun AbstractSecurityBlockData.cborMarshalData(out: OutputStream) {
-    val gen = CBORFactory().createGenerator(out)
-    gen.writeStartArray(cborGetItemCount())
-    gen.writeStartArray(securityTargets.size)
-    for (target in securityTargets) {
-        gen.writeNumber(target)
-    }
-    gen.writeEndArray()
-    gen.writeNumber(securityContext)
-    gen.writeNumber(securityBlockV7Flags)
-    securitySource.cborMarshal(gen)
-
-    if(hasSecurityParam()) {
-        gen.writeStartArray(securityContextParameters.size)
-        for(p in securityContextParameters) {
-            gen.writeStartArray(2)
-            gen.writeNumber(p.id)
-            gen.writeBinary(p.parameter)
-            gen.writeEndArray()
-        }
-        gen.writeEndArray()
-    }
-
-    gen.writeStartArray(securityResults.size)
-    for (targetResult in securityResults) {
-        gen.writeStartArray(targetResult.size)
-        for (result in targetResult) {
-            gen.writeStartArray(2)
-            gen.writeNumber(result.id)
-            gen.writeBinary(result.result)
-            gen.writeEndArray()
-        }
-        gen.writeEndArray()
-    }
-    gen.writeEndArray()
-    gen.writeEndArray()
-    gen.flush()
-}
-
-fun AbstractSecurityBlockData.cborGetItemCount(): Int {
-    if(hasSecurityParam()) {
-        return 6
-    }
-    return 5
 }
 
 @Throws(CborEncodingException::class)

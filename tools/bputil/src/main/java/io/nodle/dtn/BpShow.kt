@@ -33,7 +33,7 @@ class BpShow : Callable<Void> {
                 print(bundle)
             }
             if(validate) {
-                bundle.validate()
+                bundle.checkValid()
                 println("\nbundle is valid!")
             }
         } catch (e: CborParsingException) {
