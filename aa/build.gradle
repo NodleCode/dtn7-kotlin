@@ -1,0 +1,32 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+    id 'com.cookpad.android.plugin.license-tools'
+    id 'maven-publish'
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            libraryJar(MavenPublication) {
+                from components.kotlin
+                groupId = 'com.github.NodleCode.dtn7-kotlin'
+                artifactId = 'aa'
+                version = gitSha()
+            }
+        }
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    api group: 'org.slf4j', name:'slf4j-api', version: '1.7.30'
+
+    // bpv7
+    implementation project(path: ':bpv7')
+
+    // kotlin
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+
+    // test only dependencies
+    testImplementation 'junit:junit:4.12'
+}
