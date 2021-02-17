@@ -25,7 +25,7 @@ dependencies {
     api group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.65'
 
     // cbor
-    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:$jacksonCbor"
+    api "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:$jacksonCbor"
 
     // kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"

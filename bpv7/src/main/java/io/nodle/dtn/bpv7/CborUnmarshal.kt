@@ -16,7 +16,6 @@ import java.io.InputStream
 import java.net.URI
 import java.net.URISyntaxException
 
-
 /**
  * @author Lucien Loiseau on 12/02/21.
  */
@@ -27,7 +26,6 @@ val extensionBlockParserRegister = HashMap<Int, (CBORParser) -> ExtensionBlockDa
     .putElement(BlockType.BlockConfidentialityBlock.code, { it.readASBlockData() })
     .putElement(BlockType.BundleAgeBlock.code, { it.readBundleAgeBlockData() })
     .putElement(BlockType.HopCountBlock.code, { it.readHopCountBlockData() })
-
 
 @Throws(CborParsingException::class)
 fun cborUnmarshalBundle(buffer: ByteArray) =
