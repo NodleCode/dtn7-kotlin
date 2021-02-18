@@ -3,7 +3,10 @@ package io.nodle.dtn.bpv7
 import io.nodle.dtn.bpv7.eid.nullDtnEid
 import io.nodle.dtn.utils.LastBufferOutputStream
 import io.nodle.dtn.utils.isFlagSet
+import io.nodle.dtn.utils.setFlag
 import java.net.URI
+import java.util.*
+import kotlin.collections.ArrayList
 
 /**
  * @author Lucien Loiseau on 12/02/21.
@@ -25,6 +28,11 @@ data class PrimaryBlock(
 
 fun PrimaryBlock.version(v : Int) : PrimaryBlock {
     this.version = v
+    return this
+}
+
+fun PrimaryBlock.procV7Flags(flags : BundleV7Flags) : PrimaryBlock {
+    this.procV7Flags = this.procV7Flags.setFlag(flags.offset)
     return this
 }
 
@@ -84,4 +92,14 @@ fun PrimaryBlock.checkCRC(crc : ByteArray) : Boolean {
     }
     cborMarshal(buf)
     return buf.last().contentEquals(crc)
+}
+
+fun PrimaryBlock.ID(): String {
+    return UUID.nameUUIDFromBytes((source.toASCIIString() +
+            creationTimestamp +
+            sequenceNumber +
+            isFragment() +
+            fragmentOffset +
+            appDataLength)
+            .toByteArray()).toString()
 }

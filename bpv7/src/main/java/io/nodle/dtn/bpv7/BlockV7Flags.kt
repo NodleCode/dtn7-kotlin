@@ -1,5 +1,7 @@
 package io.nodle.dtn.bpv7
 
+import io.nodle.dtn.utils.isFlagSet
+
 /**
  * @author Lucien Loiseau on 12/02/21.
  */
@@ -14,12 +16,15 @@ enum class BlockV7Flags(val offset : Int) {
         . Bit 6 (0x02): block must be removed from bundle if it can't be processed.
         . Bit 7 (the low-order bit, 0x01): block must be replicated in every fragment.
     */
-    REPLICATE_IN_EVERY_FRAGMENT(0),
-    DISCARD_IF_NOT_PROCESSED(1),
-    TRANSMIT_STATUSREPORT_IF_NOT_PROCESSED(2),
-    DELETE_BUNDLE_IF_NOT_PROCESSED(3),
-    RESERVED_1(4),
-    RESERVED_2(5),
-    BLOCK_IS_ENCRYPTED(6),  // not in RFC
-    RESERVED_4(7)
+    ReplicateInEveryFragment(0),
+    DiscardIfNotProcessed(1),
+    StatusReportIfNotProcessed(2),
+    DeleteBundleIfNotProcessed(3),
+    Reserved4(4),
+    Reserved5(5),
+    BlockIsEncrypted(6),  // not in RFC
+    Reserved7(7)
 }
+
+fun CanonicalBlock.isFlagSet(flag: BlockV7Flags) : Boolean =
+        procV7flags.isFlagSet(flag.offset)

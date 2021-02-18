@@ -23,6 +23,8 @@ fun Bundle.addBlock(block: CanonicalBlock, pickNumber: Boolean = true): Bundle {
     return this
 }
 
+fun Bundle.hasBlockType(blockType: BlockType) = hasBlockType(blockType.code)
+
 fun Bundle.hasBlockType(blockType: Int) = canonicalBlocks.any { it.blockType == blockType }
 
 fun Bundle.hasBlockNumber(blockNumber: Int) = canonicalBlocks.any { it.blockNumber == blockNumber }
@@ -33,12 +35,5 @@ fun Bundle.getBlockNumber(blockNumber: Int) = canonicalBlocks.first { it.blockNu
 
 fun Bundle.getPayloadBlock() = getBlockType(BlockType.PayloadBlock.code)
 
-fun Bundle.ID(): String {
-    return UUID.nameUUIDFromBytes((primaryBlock.source.toASCIIString() +
-            primaryBlock.creationTimestamp +
-            primaryBlock.sequenceNumber +
-            primaryBlock.isFragment() +
-            primaryBlock.fragmentOffset +
-            primaryBlock.appDataLength)
-            .toByteArray()).toString()
-}
+
+fun Bundle.ID() = primaryBlock.ID()

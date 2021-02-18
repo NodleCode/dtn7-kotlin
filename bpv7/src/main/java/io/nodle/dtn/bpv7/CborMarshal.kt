@@ -27,24 +27,6 @@ import java.net.URI
 
 class CborEncodingException(msg: String) : Exception(msg)
 
-val extensionBlockMarshalerRegister = HashMap<Int, (ExtensionBlockData, OutputStream) -> Any>()
-    .putElement(BlockType.BlockIntegrityBlock.code,
-        { data, out ->
-            (data as AbstractSecurityBlockData).cborMarshalData(out)
-        })
-    .putElement(BlockType.BlockConfidentialityBlock.code,
-        { data, out ->
-            (data as AbstractSecurityBlockData).cborMarshalData(out)
-        })
-    .putElement(BlockType.BundleAgeBlock.code,
-        { data, out ->
-            (data as BundleAgeBlockData).cborMarshalData(out)
-        })
-    .putElement(BlockType.HopCountBlock.code,
-        { data, out ->
-            (data as HopCountBlockData).cborMarshalData(out)
-        })
-
 @Throws(CborEncodingException::class)
 fun Bundle.cborMarshal() : ByteArray {
     return ByteArrayOutputStream().use {
@@ -155,9 +137,9 @@ fun CanonicalBlock.cborMarshal(out: OutputStream) {
 }
 
 fun CBORGenerator.writeBlockData(blockType: Int, data: ExtensionBlockData) {
-    extensionBlockMarshalerRegister[blockType]?.let {
+    bpv7ExtensionManager.getExtensionEncoder(blockType)?.let { marshal ->
         val buf = ByteArrayOutputStream()
-        it(data, buf)
+        marshal(data, buf)
         writeBinary(buf.toByteArray())
     } ?: run {
         writeBinary((data as PayloadBlockData).buffer)

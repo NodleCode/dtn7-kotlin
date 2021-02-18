@@ -150,7 +150,7 @@ class BundleEncodeTest {
         val bundle = PrimaryBlock()
                 .destination(URI.create("dtn://nodle/dtn-router"))
                 .source(URI.create("dtn://test-sdk/"))
-                .procV7Flags(0L.setFlag(BundleV7Flags.AdministrativeRecordPayload.offset))
+                .procV7Flags(BundleV7Flags.AdministrativeRecordPayload)
                 .makeBundle()
                 .addBlock(payloadBlock(admRecord.cborMarshalData()).crcType(CRCType.CRC32))
         try {

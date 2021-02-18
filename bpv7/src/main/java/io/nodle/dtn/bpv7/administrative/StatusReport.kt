@@ -1,5 +1,6 @@
 package io.nodle.dtn.bpv7.administrative
 
+import io.nodle.dtn.bpv7.Bundle
 import java.net.URI
 
 /**
@@ -10,7 +11,11 @@ enum class StatusAssertion(val code: Int) {
     ReceivedBundle(0),
     ForwardedBundle(1),
     DeliveredBundle(2),
-    DeletedBundle(3)
+    DeletedBundle(3);
+
+    override fun toString(): String {
+        return this.name+"($code)"
+    }
 }
 
 enum class StatusReportReason(val code: Int) {
@@ -58,7 +63,11 @@ enum class StatusReportReason(val code: Int) {
 
     // BlockUnsupported is the "Block unsupported" bundle status report reason
     // code.
-    BlockUnsupported(11)
+    BlockUnsupported(11);
+
+    override fun toString(): String {
+        return this.name+"($code)"
+    }
 }
 
 data class StatusItem(
@@ -66,6 +75,20 @@ data class StatusItem(
         var asserted: Boolean = false,
         var timestamp: Long = 0,
 )
+
+fun statusRecord(bundle: Bundle,
+                 assertion:
+                 StatusAssertion,
+                 reason: StatusReportReason,
+                 time: Long) : AdministrativeRecord {
+    return AdministrativeRecord(
+            recordTypeCode = RecordTypeCode.StatusRecordType.code,
+            data = StatusReport()
+                    .assert(assertion,true, time)
+                    .reason(reason)
+                    .creationTimestamp(bundle.primaryBlock.creationTimestamp)
+                    .source(bundle.primaryBlock.source))
+}
 
 fun StatusReport.assert(status: StatusAssertion, assert: Boolean, time: Long): StatusReport {
     if (bundleStatusInformation.none { it.statusAssertion == status.code }) {

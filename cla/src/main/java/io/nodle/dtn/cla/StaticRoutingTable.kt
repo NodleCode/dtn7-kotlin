@@ -6,7 +6,7 @@ import io.nodle.dtn.interfaces.IRouter
 import org.slf4j.LoggerFactory
 import java.net.URI
 
-class RoutingTable : IRouter {
+class StaticRoutingTable : IRouter {
     val log = LoggerFactory.getLogger("RoutingTable")
 
     // main routing table

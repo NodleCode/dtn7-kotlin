@@ -1,8 +1,6 @@
 package io.nodle.dtn.bpv7
 
-import com.fasterxml.jackson.dataformat.cbor.CBORParser
 import io.nodle.dtn.utils.LastBufferOutputStream
-import java.io.OutputStream
 
 /**
  * @author Lucien Loiseau on 12/02/21.

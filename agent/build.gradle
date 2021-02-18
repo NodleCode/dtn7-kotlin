@@ -37,5 +37,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 
     // test only dependencies
+    testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2'
+    testImplementation group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.30'
     testImplementation 'junit:junit:4.12'
 }

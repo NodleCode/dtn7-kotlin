@@ -1,16 +1,14 @@
 package io.nodle.dtn
 
-import io.nodle.dtn.bpv7.BundleV7Flags
-import io.nodle.dtn.bpv7.administrative.StatusReport
+import io.nodle.dtn.bpv7.*
+import io.nodle.dtn.bpv7.administrative.StatusAssertion
 import io.nodle.dtn.bpv7.administrative.StatusReportReason
-import io.nodle.dtn.bpv7.checkValid
 import io.nodle.dtn.bpv7.eid.isNullEid
+import io.nodle.dtn.bpv7.extensions.*
 import io.nodle.dtn.interfaces.BundleConstraint
 import io.nodle.dtn.interfaces.BundleDescriptor
 import io.nodle.dtn.interfaces.ID
-import io.nodle.dtn.utils.isFlagSet
 import org.slf4j.LoggerFactory
-import java.lang.Exception
 
 /**
  * implementation of the bundle protocol agent
@@ -21,45 +19,85 @@ import java.lang.Exception
 
 val log = LoggerFactory.getLogger("BundleProcessor")
 
-suspend fun DtnAgent.bundleTransmission(desc: BundleDescriptor) {
+suspend fun BundleProtocolAgent.bundleTransmission(desc: BundleDescriptor) {
     /* 5.2 - step 1 */
-    log.debug("5.2-1 ${desc.ID()}")
-    if (!desc.bundle.primaryBlock.source.isNullEid() && isEndpoint(desc.bundle.primaryBlock.source)) {
+    log.debug("bundle: ${desc.ID()} - bundle transmission")
+    if (!desc.bundle.primaryBlock.source.isNullEid() && !isEndpoint(desc.bundle.primaryBlock.source)) {
         log.debug("bundle:${desc.ID()} - bundle's source is neither dtn:none nor a node's endpoint")
         bundleDeletion(desc, StatusReportReason.NoInformation)
         return
     }
 
     /* 5.2 - step 2 */
-    desc.addConstraint(BundleConstraint.DispatchPending.name)
+    desc.addConstraint(BundleConstraint.DispatchPending)
     bundleDispatching(desc)
 }
 
 /* 5.6 */
-suspend fun DtnAgent.bundleReceive(desc: BundleDescriptor) {
-    log.info("bundle:${desc.ID()} - bundle receive")
+suspend fun BundleProtocolAgent.bundleReceive(desc: BundleDescriptor) {
+    log.debug("bundle:${desc.ID()} - bundle receive")
 
-    if(!desc.constraints.isEmpty()) {
-        log.info("bundle:${desc.ID()} - received bundle is already known")
+    if (desc.constraints.isNotEmpty()) {
+        log.debug("bundle:${desc.ID()} - received bundle is already known")
+        return
     }
+
     /* 5.6 - step 1 */
     desc.addConstraint(BundleConstraint.DispatchPending.name)
 
     /* 5.6 - step 2 */
-    if(desc.bundle.primaryBlock.procV7Flags.isFlagSet(BundleV7Flags.StatusRequestReception.offset)) {
-         //SendStatusReport(descriptor BundleDescriptor, status bpv7.StatusInformationPos, reason bpv7.StatusReportReason) {
+    if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestReception)) {
+        log.debug("bundle:${desc.ID()} - request reporting on reception")
+        getAdministrativeAgent().sendStatusReport(this, desc, StatusAssertion.ReceivedBundle, StatusReportReason.NoInformation)
     }
 
     /* 5.6 - step 3 */
-    // TODO
+    // crc checked during deserialization
 
-    bundleProcessor(desc)
+    /* 5.6 - step 4 */
+    log.debug("bundle:${desc.ID()} - processing bundle")
+    val iterator = desc.bundle.canonicalBlocks.iterator()
+    for (block in iterator) {
+        if (bpv7ExtensionManager.isKnown(block.blockType)) {
+            continue
+        }
+
+        log.debug("bundle:${desc.ID()}, " +
+                "block: number=${block.blockNumber}, " +
+                "type=${block.blockType}  - block is unknown ")
+        if (block.isFlagSet(BlockV7Flags.StatusReportIfNotProcessed)) {
+            log.debug("bundle:${desc.ID()}, " +
+                    "block: number=${block.blockNumber}, " +
+                    "type=${block.blockType}  - unprocessed block requested reporting ")
+            getAdministrativeAgent().sendStatusReport(this, desc, StatusAssertion.ReceivedBundle, StatusReportReason.BlockUnsupported)
+        }
+
+        if (block.isFlagSet(BlockV7Flags.DeleteBundleIfNotProcessed)) {
+            log.debug("bundle:${desc.ID()}, " +
+                    "block: number=${block.blockNumber}, " +
+                    "type=${block.blockType}  - unprocessed block requested bundle deletion")
+            bundleDeletion(desc, StatusReportReason.BlockUnsupported)
+        }
+
+        if (block.isFlagSet(BlockV7Flags.DiscardIfNotProcessed)) {
+            log.debug("bundle:${desc.ID()}, " +
+                    "block: number=${block.blockNumber}, " +
+                    "type=${block.blockType}  - unprocessed block requested removal from bundle")
+            // TODO need to unit test this
+            iterator.remove()
+        }
+    }
+
+    bundleDispatching(desc)
 }
 
 
-suspend fun DtnAgent.bundleDispatching(desc: BundleDescriptor) {
-    if(!runWithoutException { desc.bundle.checkValid() }) {
-        log.debug("bundle:${desc.ID()} - bundle is invalid")
+suspend fun BundleProtocolAgent.bundleDispatching(desc: BundleDescriptor) {
+    log.debug("bundle:${desc.ID()} - dispatching bundle")
+
+    val e = catchException { desc.bundle.checkValid() }
+    if (e != null) {
+        log.debug("${e.message}")
         return
     }
 
@@ -72,47 +110,91 @@ suspend fun DtnAgent.bundleDispatching(desc: BundleDescriptor) {
     }
 }
 
-
-/* 5.6 - step 4*/
-suspend fun DtnAgent.bundleProcessor(desc: BundleDescriptor) {
-    log.info("bundle:${desc.ID()} - processing bundle")
-    bundleDispatching(desc)
-}
-
-
 /* 5.7 */
-suspend fun DtnAgent.localDelivery(desc: BundleDescriptor) {
-    log.info("bundle:${desc.ID()} - local delivery")
-    desc.tags
+suspend fun BundleProtocolAgent.localDelivery(desc: BundleDescriptor) {
+    log.debug("bundle:${desc.ID()} - local delivery")
+    desc.addConstraint(BundleConstraint.LocalEndpoint)
 
-    if(getRegistrar().localDelivery(desc.bundle)?.deliver(desc.bundle) == true) {
-        log.info("bundle:${desc.ID()} - bundle is delivered")
+    if (getRegistrar().localDelivery(desc.bundle)?.deliver(desc.bundle) == true) {
+        log.debug("bundle:${desc.ID()} - bundle is delivered")
+        if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestDelivery)) {
+            getAdministrativeAgent().sendStatusReport(this, desc, StatusAssertion.DeliveredBundle, StatusReportReason.NoInformation)
+        }
     } else {
-        log.info("bundle:${desc.ID()} - delivery unsuccessful")
+        log.debug("bundle:${desc.ID()} - delivery unsuccessful")
     }
+
+    // delete the bundle whether it was delivered or not
+    desc.purgeConstraints()
 }
 
 /* 5.4 */
-suspend fun DtnAgent.bundleForwarding(desc: BundleDescriptor) {
-    log.info("bundle:${desc.ID()} - bundle forwarding")
-    if(getRouter().findRoute(desc.bundle)?.sendBundle(desc.bundle) == true) {
-        log.info("bundle:${desc.ID()} - bundle is forwarded")
-    } else {
-        log.info("bundle:${desc.ID()} - forwarding failed")
+suspend fun BundleProtocolAgent.bundleForwarding(desc: BundleDescriptor) {
+    log.debug("bundle:${desc.ID()} - bundle forwarding")
+    desc.addConstraint(BundleConstraint.ForwardPending)
+    desc.removeConstraint(BundleConstraint.DispatchPending)
+
+    if (desc.bundle.hasBlockType(BlockType.HopCountBlock)) {
+        val hc = desc.bundle.getHopCountBlockData()
+        hc.inc()
+        log.debug("bundle:${desc.ID()} - contain hop count block")
+
+        if (hc.isExceeded()) {
+            log.debug("bundle:${desc.ID()} - hop count exceeded")
+            return
+        }
     }
 
+    if (desc.bundle.hasBlockType(BlockType.PreviousNodeBlock)) {
+        desc.bundle.getPreviousNodeBlockData().replaceWith(nodeId())
+        log.debug("bundle:${desc.ID()} - previous node block updated")
+    } else {
+        desc.bundle.addBlock(previousNodeBlock(nodeId()))
+    }
+
+    var bundleSent = false
+    if (getRouter().findRoute(desc.bundle)?.sendBundle(desc.bundle) == true) {
+        log.debug("bundle:${desc.ID()} - forwarding succeeded")
+        bundleSent = true
+    } else {
+        log.debug("bundle:${desc.ID()} - forwarding failed")
+    }
+
+    if (desc.bundle.hasBlockType(BlockType.HopCountBlock)) {
+        desc.bundle.getHopCountBlockData().dec()
+        log.debug("bundle:${desc.ID()} - hop count reseted")
+    }
+
+    if (bundleSent) {
+        if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestForward)) {
+            getAdministrativeAgent().sendStatusReport(this, desc, StatusAssertion.ForwardedBundle, StatusReportReason.NoInformation)
+        }
+    } else {
+        bundleContraindicated(desc)
+    }
 }
 
-suspend fun DtnAgent.bundleDeletion(desc: BundleDescriptor, error: StatusReportReason) {
-    log.info("bundle:${desc.ID()} - bundle deletion")
+suspend fun BundleProtocolAgent.bundleContraindicated(desc: BundleDescriptor) {
+    log.debug("bundle:${desc.ID()} - bundle marked for contraindication")
+    desc.addConstraint(BundleConstraint.Contraindicated)
+}
+
+suspend fun BundleProtocolAgent.bundleDeletion(desc: BundleDescriptor, reason: StatusReportReason) {
+    log.debug("bundle:${desc.ID()} - bundle deletion")
+
+    if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestDeletion)) {
+        getAdministrativeAgent().sendStatusReport(this, desc, StatusAssertion.DeletedBundle, reason)
+    }
+
+    desc.purgeConstraints()
 }
 
 
-fun runWithoutException(job: () -> Unit) : Boolean {
+fun catchException(job: () -> Unit): Exception? {
     return try {
         job()
-        true
-    } catch (e : Exception) {
-        false
+        null
+    } catch (e: Exception) {
+        e
     }
 }

@@ -30,6 +30,19 @@ data class BundleDescriptor(
         constraints.add(c)
     }
 
+    fun hasConstraint(c: BundleConstraint) = hasConstraint(c.code)
+    fun hasConstraint(c: String): Boolean =
+        constraints.contains(c)
+
+    fun removeConstraint(c: BundleConstraint) = removeConstraint(c.code)
+    fun removeConstraint(c: String) {
+        constraints.remove(c)
+    }
+
+    fun purgeConstraints() {
+        constraints = mutableListOf()
+    }
+
     fun addTag(t: BundleTag) = addTag(t.code)
     fun addTag(t: String) {
         tags.add(t)

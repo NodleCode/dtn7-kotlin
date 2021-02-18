@@ -1,6 +1,5 @@
 package io.nodle.dtn.bpv7.administrative
 
-import io.nodle.dtn.bpv7.ExtensionBlockData
 import io.nodle.dtn.bpv7.eid.nullDtnEid
 import java.net.URI
 

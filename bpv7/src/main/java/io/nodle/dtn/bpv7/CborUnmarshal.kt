@@ -22,12 +22,6 @@ import java.net.URISyntaxException
  */
 class CborParsingException(msg: String) : Exception(msg)
 
-val extensionBlockParserRegister = HashMap<Int, (CBORParser) -> ExtensionBlockData>()
-        .putElement(BlockType.BlockIntegrityBlock.code, { it.readASBlockData() })
-        .putElement(BlockType.BlockConfidentialityBlock.code, { it.readASBlockData() })
-        .putElement(BlockType.BundleAgeBlock.code, { it.readBundleAgeBlockData() })
-        .putElement(BlockType.HopCountBlock.code, { it.readHopCountBlockData() })
-
 @Throws(CborParsingException::class)
 fun cborUnmarshalBundle(buffer: ByteArray) =
         cborUnmarshalBundle(ByteArrayInputStream(buffer))
@@ -96,9 +90,9 @@ fun CBORParser.readCanonicalBlock(prefetch: Boolean): CanonicalBlock {
         ).also { block ->
 
             // parse block-specific data
-            block.data = extensionBlockParserRegister[block.blockType]?.let {
+            block.data = bpv7ExtensionManager.getExtensionParser(block.blockType)?.let { unmarshal ->
                 val cbor = CBORFactory().createParser(readByteArray())
-                it(cbor)
+                unmarshal(cbor)
             } ?: run {
                 BlobBlockData(readByteArray())
             }

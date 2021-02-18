@@ -1,5 +1,8 @@
 package io.nodle.dtn.bpv7
 
+import com.sun.org.apache.xpath.internal.operations.Bool
+import io.nodle.dtn.utils.isFlagSet
+
 /**
  * @author Lucien Loiseau on 12/02/21.
  */
@@ -44,3 +47,9 @@ enum class BundleV7Flags(val offset: Int) {
     Reserved19(19),
     Reserved20(20)
 }
+
+fun PrimaryBlock.isFlagSet(flag: BundleV7Flags) : Boolean =
+        procV7Flags.isFlagSet(flag.offset)
+
+fun Bundle.isFlagSet(flag: BundleV7Flags) : Boolean =
+        primaryBlock.isFlagSet(flag)

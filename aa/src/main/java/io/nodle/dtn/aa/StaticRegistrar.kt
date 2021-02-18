@@ -10,11 +10,11 @@ import java.net.URI
  * @author Lucien Loiseau on 17/02/21.
  */
 
-class Registrar : IRegistrar {
+class StaticRegistrar : IRegistrar {
     val log = LoggerFactory.getLogger("Registrar")
 
     // main routing table
-    var staticRoutes : MutableMap<URI, IApplicationAgent> = HashMap()
+    var staticRoutes : MutableMap<URI, IApplicationAgent> = mutableMapOf()
 
     /**
      * localDelivery returns the matching application agent for a given bundle, if any
