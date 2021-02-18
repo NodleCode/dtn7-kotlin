@@ -74,6 +74,15 @@ fun <T : Any> CBORParser.readStruct(prefetch: Boolean, elementParser: (CBORParse
 fun <T : Any> CBORParser.readStruct(elementParser: (CBORParser) -> T): T =
     readStruct(false, elementParser)
 
+@Throws(CborParsingException::class)
+fun CBORParser.readBoolean(): Boolean {
+    val t = nextToken()
+    if (!t.isBoolean) {
+        throw CborParsingException("expected boolean but got $currentName")
+    }
+    return booleanValue
+}
+
 
 @Throws(CborParsingException::class)
 fun CBORParser.readInt(): Int {

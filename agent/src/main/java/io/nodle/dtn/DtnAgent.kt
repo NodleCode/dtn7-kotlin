@@ -1,6 +1,7 @@
 package io.nodle.dtn
 
 import io.nodle.dtn.bpv7.Bundle
+import io.nodle.dtn.interfaces.BundleDescriptor
 import io.nodle.dtn.interfaces.IAgent
 
 /**
@@ -10,11 +11,15 @@ import io.nodle.dtn.interfaces.IAgent
 abstract class DtnAgent : IAgent {
 
     override suspend fun receive(bundle: Bundle) {
-        bundleReceive(BundleDescriptor( bundle))
+        bundleReceive(BundleDescriptor(bundle))
     }
 
     override suspend fun transmit(bundle: Bundle) {
         bundleTransmission(BundleDescriptor(bundle))
+    }
+
+    override suspend fun sendStatusReport(bundle: BundleDescriptor) {
+        TODO("Not yet implemented")
     }
 
 }

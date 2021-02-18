@@ -13,11 +13,11 @@ import java.util.concurrent.Callable
  * @author Lucien Loiseau on 13/02/21.
  */
 @CommandLine.Command(
-    name = "create",
-    mixinStandardHelpOptions = true,
-    description = ["", "create a bundle"],
-    optionListHeading = "@|bold %nOptions|@:%n",
-    footer = [""]
+        name = "create",
+        mixinStandardHelpOptions = true,
+        description = ["", "create a bundle"],
+        optionListHeading = "@|bold %nOptions|@:%n",
+        footer = [""]
 )
 class BpCreate : Callable<Void> {
     @CommandLine.Option(names = ["-d", "--destination"], description = ["destination eid "])
@@ -28,6 +28,9 @@ class BpCreate : Callable<Void> {
 
     @CommandLine.Option(names = ["-r", "--report"], description = ["report-to eid"])
     private var report = "dtn://report/"
+
+    @CommandLine.Option(names = ["-f", "--flags"], description = ["flags"])
+    private var flags: Long = 0
 
     @CommandLine.Option(names = ["-l", "--lifetime"], description = ["lifetime of the bundle"])
     private var lifetime: Long = 0
@@ -55,13 +58,14 @@ class BpCreate : Callable<Void> {
         }
 
         val bundle = PrimaryBlock()
-            .destination(URI.create(destination))
-            .source(URI.create(source))
-            .reportTo(URI.create(report))
-            .crcType(crc)
-            .lifetime(lifetime)
-            .makeBundle()
-            .addBlock(payloadBlock(System.`in`.readBytes()).crcType(crc))
+                .destination(URI.create(destination))
+                .source(URI.create(source))
+                .reportTo(URI.create(report))
+                .procV7Flags(flags)
+                .crcType(crc)
+                .lifetime(lifetime)
+                .makeBundle()
+                .addBlock(payloadBlock(System.`in`.readBytes()).crcType(crc))
 
         if (age > 0L) {
             bundle.primaryBlock.creationTimestamp(0)
@@ -69,7 +73,7 @@ class BpCreate : Callable<Void> {
         }
 
         if (targets.isNotEmpty()) {
-            if(hexKey == "") {
+            if (hexKey == "") {
                 println("the --key paraneter must be supplied with --sign")
             }
 

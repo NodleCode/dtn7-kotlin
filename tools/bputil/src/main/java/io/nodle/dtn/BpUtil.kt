@@ -13,7 +13,7 @@ import java.util.concurrent.Callable
     description = ["", "bputil is a simple tool to encode and parse bundle"],
     optionListHeading = "@|bold %nOptions|@:%n",
     footer = [""],
-    subcommands = [BpCreate::class, BpShow::class, BpKey::class]
+    subcommands = [BpStatus::class, BpCreate::class, BpShow::class, BpKey::class]
 )
 class BpUtil : Callable<Void> {
     @Throws(Exception::class)

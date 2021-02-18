@@ -3,6 +3,7 @@ package io.nodle.dtn.bpv7
 import com.fasterxml.jackson.core.JsonToken
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.dataformat.cbor.CBORParser
+import io.nodle.dtn.bpv7.administrative.readAdministrativeRecord
 import io.nodle.dtn.bpv7.bpsec.readASBlockData
 import io.nodle.dtn.bpv7.eid.EID_DTN_IANA_VALUE
 import io.nodle.dtn.bpv7.eid.EID_IPN_IANA_VALUE
@@ -22,53 +23,53 @@ import java.net.URISyntaxException
 class CborParsingException(msg: String) : Exception(msg)
 
 val extensionBlockParserRegister = HashMap<Int, (CBORParser) -> ExtensionBlockData>()
-    .putElement(BlockType.BlockIntegrityBlock.code, { it.readASBlockData() })
-    .putElement(BlockType.BlockConfidentialityBlock.code, { it.readASBlockData() })
-    .putElement(BlockType.BundleAgeBlock.code, { it.readBundleAgeBlockData() })
-    .putElement(BlockType.HopCountBlock.code, { it.readHopCountBlockData() })
+        .putElement(BlockType.BlockIntegrityBlock.code, { it.readASBlockData() })
+        .putElement(BlockType.BlockConfidentialityBlock.code, { it.readASBlockData() })
+        .putElement(BlockType.BundleAgeBlock.code, { it.readBundleAgeBlockData() })
+        .putElement(BlockType.HopCountBlock.code, { it.readHopCountBlockData() })
 
 @Throws(CborParsingException::class)
 fun cborUnmarshalBundle(buffer: ByteArray) =
-    cborUnmarshalBundle(ByteArrayInputStream(buffer))
+        cborUnmarshalBundle(ByteArrayInputStream(buffer))
 
 @Throws(CborParsingException::class)
 fun cborUnmarshalBundle(input: InputStream): Bundle {
     return CBORFactory()
-        .createParser(input)
-        .readBundle()
+            .createParser(input)
+            .readBundle()
 }
 
 @Throws(CborParsingException::class)
 fun CBORParser.readBundle(): Bundle {
     readStartArray()
     return readPrimaryBlock()
-        .makeBundle()
-        .also {
-            while (true) {
-                if (nextToken() == JsonToken.END_ARRAY) {
-                    break
+            .makeBundle()
+            .also {
+                while (true) {
+                    if (nextToken() == JsonToken.END_ARRAY) {
+                        break
+                    }
+                    it.addBlock(readCanonicalBlock(true), false)
                 }
-                it.addBlock(readCanonicalBlock(true), false)
             }
-        }
 }
 
 @Throws(CborParsingException::class)
 fun CBORParser.readPrimaryBlock(): PrimaryBlock {
     return readStruct(false) {
         PrimaryBlock(
-            version = readInt(),
-            procV7Flags = readLong(),
-            crcType = CRCType.fromInt(readInt()),
-            destination = readEid(),
-            source = readEid(),
-            reportTo = readEid(),
-            creationTimestamp = let { readStartArray(); readLong() },
-            sequenceNumber = readLong(),
-            lifetime = let { readCloseArray(); readLong() },
+                version = readInt(),
+                procV7Flags = readLong(),
+                crcType = CRCType.fromInt(readInt()),
+                destination = readEid(),
+                source = readEid(),
+                reportTo = readEid(),
+                creationTimestamp = let { readStartArray(); readLong() },
+                sequenceNumber = readLong(),
+                lifetime = let { readCloseArray(); readLong() },
         ).also { primary ->
             // fragment specific information
-            if (primary.procV7Flags.isFlagSet(BundleV7Flags.FRAGMENT.offset)) {
+            if (primary.procV7Flags.isFlagSet(BundleV7Flags.IsFragment.offset)) {
                 primary.fragmentOffset = readLong()
                 primary.appDataLength = readLong()
             }
@@ -88,10 +89,10 @@ fun CBORParser.readPrimaryBlock(): PrimaryBlock {
 fun CBORParser.readCanonicalBlock(prefetch: Boolean): CanonicalBlock {
     return readStruct(prefetch) {
         CanonicalBlock(
-            blockType = readInt(),
-            blockNumber = readInt(),
-            procV7flags = readLong(),
-            crcType = CRCType.fromInt(readInt())
+                blockType = readInt(),
+                blockNumber = readInt(),
+                procV7flags = readLong(),
+                crcType = CRCType.fromInt(readInt())
         ).also { block ->
 
             // parse block-specific data

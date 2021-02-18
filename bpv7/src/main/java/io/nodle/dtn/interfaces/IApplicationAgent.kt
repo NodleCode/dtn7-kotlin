@@ -8,7 +8,7 @@ import java.net.URI
  */
 interface IApplicationAgent {
 
-    suspend fun receiveBundle(bundle : Bundle) : Boolean
+    suspend fun deliver(bundle : Bundle) : Boolean
 
     fun getApplicationAgentEndpointIds() : List<URI>
 

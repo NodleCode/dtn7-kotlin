@@ -1,9 +1,19 @@
 package io.nodle.dtn.bpv7.administrative
 
+import java.net.URI
+
 /**
  * @author Lucien Loiseau on 17/02/21.
  */
-enum class StatusReportReason(val code : Int) {
+
+enum class StatusAssertion(val code: Int) {
+    ReceivedBundle(0),
+    ForwardedBundle(1),
+    DeliveredBundle(2),
+    DeletedBundle(3)
+}
+
+enum class StatusReportReason(val code: Int) {
     // NoInformation is the "No additional information" bundle status report
     // reason code.
     NoInformation(0),
@@ -50,3 +60,51 @@ enum class StatusReportReason(val code : Int) {
     // code.
     BlockUnsupported(11)
 }
+
+data class StatusItem(
+        var statusAssertion: Int,
+        var asserted: Boolean = false,
+        var timestamp: Long = 0,
+)
+
+fun StatusReport.assert(status: StatusAssertion, assert: Boolean, time: Long): StatusReport {
+    if (bundleStatusInformation.none { it.statusAssertion == status.code }) {
+        bundleStatusInformation.add(StatusItem(
+                statusAssertion = status.code,
+                asserted = assert,
+                timestamp = time))
+    } else {
+        bundleStatusInformation.first { it.statusAssertion == status.code }
+                .apply {
+                    asserted = assert
+                    timestamp = time
+                }
+    }
+    return this
+}
+
+fun StatusReport.reason(reason: StatusReportReason) : StatusReport {
+    bundleStatusReportReason = reason.code
+    return this
+}
+
+fun StatusReport.source(src:URI) : StatusReport {
+    sourceNodeId = src
+    return this
+}
+
+fun StatusReport.creationTimestamp(timestamp: Long) : StatusReport {
+    creationTimestamp = timestamp
+    return this
+}
+
+fun StatusReport.offset(off: Long) : StatusReport {
+    fragmentOffset = off
+    return this
+}
+
+fun StatusReport.appDataLength(length: Long) : StatusReport {
+    appDataLength = length
+    return this
+}
+

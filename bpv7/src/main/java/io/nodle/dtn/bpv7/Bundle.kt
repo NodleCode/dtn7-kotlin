@@ -1,17 +1,20 @@
 package io.nodle.dtn.bpv7
 
+import java.util.*
+import kotlin.collections.ArrayList
+
 /**
  * @author Lucien Loiseau on 12/02/21.
  */
 
 data class Bundle(
         var primaryBlock: PrimaryBlock,
-        var canonicalBlocks: MutableList<CanonicalBlock> = ArrayList()) 
+        var canonicalBlocks: MutableList<CanonicalBlock> = ArrayList())
 
-fun Bundle.addBlock(block: CanonicalBlock, pickNumber : Boolean = true): Bundle {
+fun Bundle.addBlock(block: CanonicalBlock, pickNumber: Boolean = true): Bundle {
     if (block.blockType != BlockType.PayloadBlock.code || !hasBlockType(BlockType.PayloadBlock.code)) {
-        if(pickNumber) {
-            canonicalBlocks.add(block.number(canonicalBlocks.size+1))
+        if (pickNumber) {
+            canonicalBlocks.add(block.number(canonicalBlocks.size + 1))
         } else {
             canonicalBlocks.add(block)
         }
@@ -20,12 +23,22 @@ fun Bundle.addBlock(block: CanonicalBlock, pickNumber : Boolean = true): Bundle 
     return this
 }
 
-fun Bundle.hasBlockType(blockType : Int) = canonicalBlocks.any{ it.blockType == blockType }
+fun Bundle.hasBlockType(blockType: Int) = canonicalBlocks.any { it.blockType == blockType }
 
-fun Bundle.hasBlockNumber(blockNumber : Int) = canonicalBlocks.any{ it.blockNumber == blockNumber }
+fun Bundle.hasBlockNumber(blockNumber: Int) = canonicalBlocks.any { it.blockNumber == blockNumber }
 
 fun Bundle.getBlockType(blockType: Int) = canonicalBlocks.first { it.blockType == blockType }
 
 fun Bundle.getBlockNumber(blockNumber: Int) = canonicalBlocks.first { it.blockNumber == blockNumber }
 
 fun Bundle.getPayloadBlock() = getBlockType(BlockType.PayloadBlock.code)
+
+fun Bundle.ID(): String {
+    return UUID.nameUUIDFromBytes((primaryBlock.source.toASCIIString() +
+            primaryBlock.creationTimestamp +
+            primaryBlock.sequenceNumber +
+            primaryBlock.isFragment() +
+            primaryBlock.fragmentOffset +
+            primaryBlock.appDataLength)
+            .toByteArray()).toString()
+}

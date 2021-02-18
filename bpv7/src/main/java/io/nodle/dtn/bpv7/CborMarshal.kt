@@ -2,6 +2,8 @@ package io.nodle.dtn.bpv7
 
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.dataformat.cbor.CBORGenerator
+import io.nodle.dtn.bpv7.administrative.AdministrativeRecord
+import io.nodle.dtn.bpv7.administrative.cborMarshalData
 import io.nodle.dtn.bpv7.bpsec.AbstractSecurityBlockData
 import io.nodle.dtn.bpv7.bpsec.cborMarshalData
 import io.nodle.dtn.bpv7.eid.*
@@ -87,7 +89,7 @@ fun PrimaryBlock.cborMarshal(out: OutputStream) {
         it.writeNumber(sequenceNumber)
         it.writeEndArray()
         it.writeNumber(lifetime)
-        if (procV7Flags.isFlagSet(BundleV7Flags.FRAGMENT.offset)) {
+        if (procV7Flags.isFlagSet(BundleV7Flags.IsFragment.offset)) {
             it.writeNumber(fragmentOffset)
             it.writeNumber(appDataLength)
         }
@@ -120,7 +122,7 @@ fun PrimaryBlock.cborGetItemCount(): Int {
     if (this.crcType != CRCType.NoCRC) {
         length++
     }
-    if (this.procV7Flags.isFlagSet(BundleV7Flags.FRAGMENT.offset)) {
+    if (this.procV7Flags.isFlagSet(BundleV7Flags.IsFragment.offset)) {
         length += 2
     }
     return length
@@ -158,7 +160,7 @@ fun CBORGenerator.writeBlockData(blockType: Int, data: ExtensionBlockData) {
         it(data, buf)
         writeBinary(buf.toByteArray())
     } ?: run {
-        writeBinary((data as BlobBlockData).buffer)
+        writeBinary((data as PayloadBlockData).buffer)
     }
 }
 

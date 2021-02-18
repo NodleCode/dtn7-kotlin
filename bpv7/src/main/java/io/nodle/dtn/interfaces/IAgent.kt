@@ -13,6 +13,8 @@ interface IAgent {
 
     suspend fun transmit(bundle : Bundle)
 
+    suspend fun sendStatusReport(bundle : BundleDescriptor)
+
     fun getRegistrar() : IRegistrar
 
     fun getRouter() : IRouter

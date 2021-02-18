@@ -68,7 +68,9 @@ fun PrimaryBlock.lifetime(lifetime : Long) : PrimaryBlock {
     return this
 }
 
-fun PrimaryBlock.isFragment() : Boolean = procV7Flags.isFlagSet(BundleV7Flags.FRAGMENT.offset)
+fun PrimaryBlock.isFragment() : Boolean = procV7Flags.isFlagSet(BundleV7Flags.IsFragment.offset)
+
+fun PrimaryBlock.isAdministiveRecord() : Boolean = procV7Flags.isFlagSet(BundleV7Flags.AdministrativeRecordPayload.offset)
 
 fun PrimaryBlock.makeBundle() = Bundle(this, ArrayList())
 

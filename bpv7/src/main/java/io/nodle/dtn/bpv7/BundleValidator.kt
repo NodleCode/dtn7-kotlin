@@ -40,7 +40,7 @@ fun Bundle.checkValid() {
 
 @Throws(ValidationException::class)
 fun PrimaryBlock.checkValidPrimaryBlock(bundle : Bundle) {
-    if (procV7Flags.isFlagSet(BundleV7Flags.FRAGMENT.offset) && procV7Flags.isFlagSet(BundleV7Flags.NO_FRAGMENT.offset)) {
+    if (procV7Flags.isFlagSet(BundleV7Flags.IsFragment.offset) && procV7Flags.isFlagSet(BundleV7Flags.MustNotFragment.offset)) {
         throw ValidationException("primary: bundle is a fragment but must_no_fragment flag is set")
     }
 
@@ -48,11 +48,11 @@ fun PrimaryBlock.checkValidPrimaryBlock(bundle : Bundle) {
     source.checkValidEid()
     reportTo.checkValidEid()
 
-    if(source.isNullEid() && !(procV7Flags.isFlagSet(BundleV7Flags.NO_FRAGMENT.offset)
-        && !procV7Flags.isFlagSet(BundleV7Flags.RECEPTION_REPORT.offset)
-        && !procV7Flags.isFlagSet(BundleV7Flags.FORWARD_REPORT.offset)
-        && !procV7Flags.isFlagSet(BundleV7Flags.DELIVERY_REPORT.offset)
-        && !procV7Flags.isFlagSet(BundleV7Flags.DELETION_REPORT.offset))) {
+    if(source.isNullEid() && !(procV7Flags.isFlagSet(BundleV7Flags.MustNotFragment.offset)
+        && !procV7Flags.isFlagSet(BundleV7Flags.StatusRequestReception.offset)
+        && !procV7Flags.isFlagSet(BundleV7Flags.StatusRequestForward.offset)
+        && !procV7Flags.isFlagSet(BundleV7Flags.StatusRequestDelivery.offset)
+        && !procV7Flags.isFlagSet(BundleV7Flags.StatusRequestDeletion.offset))) {
         throw ValidationException("primary: anonymous bundle shall not be fragmented and status report not delivered")
     }
 
