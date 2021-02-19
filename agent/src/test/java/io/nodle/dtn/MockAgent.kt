@@ -25,11 +25,15 @@ abstract class MockAgent(val localId : URI) : BundleProtocolAgent() {
                   delivered.add(bundle)
                   return true
               }
-
-              override fun getApplicationAgentEndpointIds(): List<URI> {
-                  return listOf(localId)
-              }
           }
+        }
+
+        override fun register(eid: URI, aa: IApplicationAgent): Boolean {
+            TODO("Not yet implemented")
+        }
+
+        override fun listEndpoint(): List<URI> {
+            TODO("Not yet implemented")
         }
     }
 

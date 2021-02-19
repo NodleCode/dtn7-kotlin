@@ -14,7 +14,7 @@ enum class StatusAssertion(val code: Int) {
     DeletedBundle(3);
 
     override fun toString(): String {
-        return this.name+"($code)"
+        return this.name + "($code)"
     }
 }
 
@@ -66,7 +66,7 @@ enum class StatusReportReason(val code: Int) {
     BlockUnsupported(11);
 
     override fun toString(): String {
-        return this.name+"($code)"
+        return this.name + "($code)"
     }
 }
 
@@ -80,53 +80,69 @@ fun statusRecord(bundle: Bundle,
                  assertion:
                  StatusAssertion,
                  reason: StatusReportReason,
-                 time: Long) : AdministrativeRecord {
+                 time: Long): AdministrativeRecord {
     return AdministrativeRecord(
             recordTypeCode = RecordTypeCode.StatusRecordType.code,
             data = StatusReport()
-                    .assert(assertion,true, time)
+                    .assert(assertion, true, time)
                     .reason(reason)
                     .creationTimestamp(bundle.primaryBlock.creationTimestamp)
                     .source(bundle.primaryBlock.source))
 }
 
-fun StatusReport.assert(status: StatusAssertion, assert: Boolean, time: Long): StatusReport {
-    if (bundleStatusInformation.none { it.statusAssertion == status.code }) {
-        bundleStatusInformation.add(StatusItem(
-                statusAssertion = status.code,
-                asserted = assert,
-                timestamp = time))
-    } else {
-        bundleStatusInformation.first { it.statusAssertion == status.code }
-                .apply {
+fun StatusReport.assert(status: StatusAssertion, assert: Boolean, time: Long) =
+        assert(status.code, assert, time)
+
+fun StatusReport.assert(status: Int, assert: Boolean, time: Long): StatusReport {
+    when (status) {
+        StatusAssertion.ReceivedBundle.code -> received = time
+        StatusAssertion.ForwardedBundle.code -> forwarded = time
+        StatusAssertion.DeliveredBundle.code -> delivered = time
+        StatusAssertion.DeletedBundle.code -> deleted = time
+        else -> otherAssertions.firstOrNull { it.statusAssertion == status }
+                ?.apply {
                     asserted = assert
                     timestamp = time
-                }
+                } ?: otherAssertions.add(StatusItem(status, assert, time))
     }
     return this
 }
 
-fun StatusReport.reason(reason: StatusReportReason) : StatusReport {
+fun StatusReport.assertTime(status: StatusAssertion): Long = assertTime(status.code)
+fun StatusReport.assertTime(status: Int): Long {
+    return when (status) {
+        StatusAssertion.ReceivedBundle.code -> received
+        StatusAssertion.ForwardedBundle.code -> forwarded
+        StatusAssertion.DeliveredBundle.code -> delivered
+        StatusAssertion.DeletedBundle.code -> deleted
+        else -> otherAssertions.getOrNull(status)?.timestamp ?: 0
+    }
+}
+
+fun StatusReport.isAsserted(status: StatusAssertion): Boolean = assertTime(status) > 0
+fun StatusReport.isAsserted(status: Int): Boolean = assertTime(status) > 0
+
+fun StatusReport.reason(reason: StatusReportReason): StatusReport {
     bundleStatusReportReason = reason.code
     return this
 }
 
-fun StatusReport.source(src:URI) : StatusReport {
+fun StatusReport.source(src: URI): StatusReport {
     sourceNodeId = src
     return this
 }
 
-fun StatusReport.creationTimestamp(timestamp: Long) : StatusReport {
+fun StatusReport.creationTimestamp(timestamp: Long): StatusReport {
     creationTimestamp = timestamp
     return this
 }
 
-fun StatusReport.offset(off: Long) : StatusReport {
+fun StatusReport.offset(off: Long): StatusReport {
     fragmentOffset = off
     return this
 }
 
-fun StatusReport.appDataLength(length: Long) : StatusReport {
+fun StatusReport.appDataLength(length: Long): StatusReport {
     appDataLength = length
     return this
 }

@@ -9,7 +9,9 @@ import io.nodle.dtn.bpv7.CborParsingException
 import io.nodle.dtn.bpv7.cborMarshal
 import io.nodle.dtn.bpv7.readEid
 import io.nodle.dtn.utils.*
+import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import java.io.OutputStream
 
 /**
@@ -36,13 +38,18 @@ fun AdministrativeRecord.cborMarshalData(out: OutputStream) {
 
 fun CBORGenerator.cborMarshal(sr: StatusReport) {
     writeStartArray(sr.cborGetItemCount())
-    writeStartArray(4)
-    for (i in 0..3) {
-        if (sr.bundleStatusInformation.none { it.statusAssertion == i }) {
-            cborMarshal(StatusItem(i, false))
-        } else {
-            cborMarshal(sr.bundleStatusInformation.first { it.statusAssertion == i })
-        }
+
+    // prepare assertions
+    val assertions = mutableListOf<StatusItem>()
+    assertions.add(0, StatusItem(0, sr.received > 0, sr.received))
+    assertions.add(1, StatusItem(1, sr.forwarded > 0, sr.forwarded))
+    assertions.add(2, StatusItem(2, sr.delivered > 0, sr.delivered))
+    assertions.add(3, StatusItem(3, sr.deleted > 0, sr.deleted))
+    assertions.addAll(sr.otherAssertions)
+
+    writeStartArray(assertions.size)
+    assertions.forEach {
+        cborMarshal(it)
     }
     writeEndArray()
     writeNumber(sr.bundleStatusReportReason)
@@ -81,6 +88,17 @@ fun StatusItem.cborGetItemCount(): Int {
 }
 
 @Throws(CborParsingException::class)
+fun cborUnmarshalAdmnistrativeRecord(buffer: ByteArray) =
+        cborUnmarshalAdmnistrativeRecord(ByteArrayInputStream(buffer))
+
+@Throws(CborParsingException::class)
+fun cborUnmarshalAdmnistrativeRecord(input: InputStream): AdministrativeRecord {
+    return CBORFactory()
+            .createParser(input)
+            .readAdministrativeRecord()
+}
+
+@Throws(CborParsingException::class)
 fun CBORParser.readAdministrativeRecord(): AdministrativeRecord {
     readStartArray()
     return AdministrativeRecord(
@@ -101,30 +119,42 @@ fun CBORParser.readStatusReport(): StatusReport {
     readStartArray()
     var assertCounter = 0
     return StatusReport(
-            bundleStatusInformation = readArray {
-                readStruct(true) {
-                    val assertion = readBoolean()
-                    StatusItem(
-                            assertCounter++,
-                            assertion,
-                            if (assertion) {
-                                readLong()
-                            } else {
-                                0
-                            })
-                }
-            },
+            otherAssertions = readArray { readStatusItem(assertCounter++, true) },
             bundleStatusReportReason = readInt(),
             sourceNodeId = readEid(),
             creationTimestamp = readLong()
     ).also {
+        if (it.otherAssertions.size < 4) {
+            throw CborParsingException("missing some of status assertion")
+        }
+        it.received = it.otherAssertions[0].timestamp
+        it.forwarded = it.otherAssertions[1].timestamp
+        it.delivered = it.otherAssertions[2].timestamp
+        it.deleted = it.otherAssertions[3].timestamp
+        if (it.otherAssertions.size == 4) {
+            it.otherAssertions = mutableListOf()
+        } else {
+            it.otherAssertions = it.otherAssertions.subList(4, it.otherAssertions.size)
+        }
+
         // unfortunately with jackson we cannot read the cbor array length
-        // so we have to pre-fetch the token and check if it is end of array
-        // or next element
+        // so we cannot know if there are the fragment offset part or not
         if (nextToken() != JsonToken.END_ARRAY) {
             it.fragmentOffset = longValue
             it.appDataLength = readLong()
             readCloseArray()
         }
+    }
+}
+
+fun CBORParser.readStatusItem(code: Int, prefetch: Boolean): StatusItem {
+    return readStruct(prefetch = prefetch) {
+        val assert = readBoolean()
+        val time = if (assert) {
+            readLong()
+        } else {
+            0
+        }
+        StatusItem(code, assert, time)
     }
 }

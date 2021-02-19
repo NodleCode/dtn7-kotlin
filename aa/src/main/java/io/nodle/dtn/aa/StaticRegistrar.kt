@@ -1,6 +1,7 @@
 package io.nodle.dtn.aa
 
 import io.nodle.dtn.bpv7.Bundle
+import io.nodle.dtn.bpv7.ID
 import io.nodle.dtn.interfaces.IApplicationAgent
 import io.nodle.dtn.interfaces.IRegistrar
 import org.slf4j.LoggerFactory
@@ -30,7 +31,7 @@ class StaticRegistrar : IRegistrar {
     override fun localDelivery(bundle: Bundle): IApplicationAgent? {
         for ((k, v) in staticRegistration) {
             if (k == bundle.primaryBlock.destination) {
-                log.debug("application agent found for bundle ${bundle.hashCode()}")
+                log.debug("application agent found for bundle ${bundle.ID()}")
                 return v
             }
         }

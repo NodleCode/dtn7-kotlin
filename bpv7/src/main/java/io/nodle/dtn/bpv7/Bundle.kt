@@ -1,7 +1,8 @@
 package io.nodle.dtn.bpv7
 
-import java.util.*
-import kotlin.collections.ArrayList
+import io.nodle.dtn.bpv7.administrative.StatusReport
+import io.nodle.dtn.bpv7.administrative.StatusReportReason
+import io.nodle.dtn.bpv7.administrative.cborUnmarshalAdmnistrativeRecord
 
 /**
  * @author Lucien Loiseau on 12/02/21.
@@ -34,6 +35,11 @@ fun Bundle.getBlockType(blockType: Int) = canonicalBlocks.firstOrNull { it.block
 fun Bundle.getBlockNumber(blockNumber: Int) = canonicalBlocks.firstOrNull { it.blockNumber == blockNumber }
 
 fun Bundle.getPayloadBlock() = getBlockType(BlockType.PayloadBlock.code)
+
+fun Bundle.getStatusReport() = (getPayloadBlock()?.data as PayloadBlockData)
+        .buffer.run {
+            cborUnmarshalAdmnistrativeRecord(this).data as StatusReport
+        }
 
 fun Bundle.ID() = primaryBlock.ID()
 fun Bundle.fragmentedID() = primaryBlock.fragmentedID()
