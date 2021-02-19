@@ -2,21 +2,13 @@ package io.nodle.dtn.bpv7
 
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.dataformat.cbor.CBORGenerator
-import io.nodle.dtn.bpv7.administrative.AdministrativeRecord
-import io.nodle.dtn.bpv7.administrative.cborMarshalData
-import io.nodle.dtn.bpv7.bpsec.AbstractSecurityBlockData
-import io.nodle.dtn.bpv7.bpsec.cborMarshalData
 import io.nodle.dtn.bpv7.eid.*
-import io.nodle.dtn.bpv7.extensions.BundleAgeBlockData
-import io.nodle.dtn.bpv7.extensions.HopCountBlockData
-import io.nodle.dtn.bpv7.extensions.cborMarshalData
 import io.nodle.dtn.crypto.CRC
 import io.nodle.dtn.crypto.CRC16X25
 import io.nodle.dtn.crypto.CRC32C
 import io.nodle.dtn.crypto.NullCRC
 import io.nodle.dtn.utils.DualOutputStream
 import io.nodle.dtn.utils.isFlagSet
-import io.nodle.dtn.utils.putElement
 import java.io.ByteArrayOutputStream
 import java.io.OutputStream
 import java.net.URI
@@ -136,12 +128,17 @@ fun CanonicalBlock.cborMarshal(out: OutputStream) {
     }
 }
 
+
+@Throws(CborEncodingException::class)
 fun CBORGenerator.writeBlockData(blockType: Int, data: ExtensionBlockData) {
     bpv7ExtensionManager.getExtensionEncoder(blockType)?.let { marshal ->
         val buf = ByteArrayOutputStream()
         marshal(data, buf)
         writeBinary(buf.toByteArray())
     } ?: run {
+        if(blockType != BlockType.PayloadBlock.code) {
+            throw CborEncodingException("block type is unknown")
+        }
         writeBinary((data as PayloadBlockData).buffer)
     }
 }

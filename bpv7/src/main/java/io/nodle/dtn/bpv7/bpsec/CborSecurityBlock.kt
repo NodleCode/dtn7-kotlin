@@ -1,8 +1,13 @@
 package io.nodle.dtn.bpv7.bpsec
 
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
+import com.fasterxml.jackson.dataformat.cbor.CBORGenerator
 import com.fasterxml.jackson.dataformat.cbor.CBORParser
-import io.nodle.dtn.bpv7.*
+import io.nodle.dtn.bpv7.CborEncodingException
+import io.nodle.dtn.bpv7.CborParsingException
+import io.nodle.dtn.bpv7.cborMarshal
+import io.nodle.dtn.bpv7.readEid
+import io.nodle.dtn.crypto.toEd25519PublicKey
 import io.nodle.dtn.utils.*
 import java.io.OutputStream
 
@@ -23,30 +28,53 @@ fun AbstractSecurityBlockData.cborMarshalData(out: OutputStream) {
         it.cborMarshal(securitySource)
 
         if (hasSecurityParam()) {
-            it.writeStartArray(securityContextParameters.size)
-            for (p in securityContextParameters) {
-                it.writeStartArray(2)
-                it.writeNumber(p.id)
-                it.writeBinary(p.parameter)
-                it.writeEndArray()
+            when (securityContext) {
+                SecurityContext.Ed25519BlockSignature.id ->
+                    it.cborMarshal(securityContextParameters as Ed25519SecurityParameter)
+                else -> throw CborEncodingException("security block is unknown")
             }
-            it.writeEndArray()
         }
 
         it.writeStartArray(securityResults.size)
         for (targetResult in securityResults) {
-            it.writeStartArray(targetResult.size)
-            for (result in targetResult) {
-                it.writeStartArray(2)
-                it.writeNumber(result.id)
-                it.writeBinary(result.result)
-                it.writeEndArray()
+            when (securityContext) {
+                SecurityContext.Ed25519BlockSignature.id ->
+                    it.cborMarshal(targetResult as Ed25519SecurityResult)
+                else -> throw CborEncodingException("security block is unknown")
             }
-            it.writeEndArray()
         }
         it.writeEndArray()
         it.writeEndArray()
     }
+}
+
+fun CBORGenerator.cborMarshal(params: Ed25519SecurityParameter) {
+    writeStartArray(2)
+
+    // pubkey
+    writeStartArray(2)
+    writeNumber(0)
+    writeBinary(params.ed25519PublicKey.hexToBa())
+    writeEndArray()
+    // timestamp
+    writeStartArray(2)
+    writeNumber(1)
+    writeNumber(params.timestamp)
+    writeEndArray()
+
+    writeEndArray()
+}
+
+fun CBORGenerator.cborMarshal(result: Ed25519SecurityResult) {
+    writeStartArray(1)
+
+    // the actual signature
+    writeStartArray(2)
+    writeNumber(0)
+    writeBinary(result.signature.hexToBa())
+    writeEndArray()
+
+    writeEndArray()
 }
 
 fun AbstractSecurityBlockData.cborGetItemCount(): Int {
@@ -61,25 +89,60 @@ fun AbstractSecurityBlockData.cborGetItemCount(): Int {
 fun CBORParser.readASBlockData(): AbstractSecurityBlockData {
     return readStruct(false) {
         AbstractSecurityBlockData(
-            securityTargets = readArray() { it.intValue },
-            securityContext = readInt(),
-            securityBlockV7Flags = readLong(),
-            securitySource = readEid()
-        ).also {
+                securityTargets = readArray() { it.intValue },
+                securityContext = readInt(),
+                securityBlockV7Flags = readLong(),
+                securitySource = readEid()
+        ).also { asb ->
+            if (asb.securityContext != SecurityContext.Ed25519BlockSignature.id) {
+                throw CborParsingException("security context unknown")
+            }
+
             // security parameters
-            if (it.hasSecurityParam()) {
-                it.securityContextParameters = readArray() {
-                    readStruct(true) { SecurityContextParameter(readInt(), readByteArray()) }
-                }
+            if (asb.hasSecurityParam()) {
+                asb.securityContextParameters = readEd25519SecurityParameters()
             }
 
             // security results
-            it.securityResults = readArray() {
-                readArray(true) {
-                    readStruct(true) { SecurityResult(readInt(), readByteArray()) }
-                }
+            asb.securityResults = readArray {
+                readEd25519SecurityResult(true)
             }
         }
     }
 }
+
+fun CBORParser.readEd25519SecurityParameters(): Ed25519SecurityParameter {
+    readStartArray()
+
+    readStartArray()
+    readInt()
+    val pubKey = readByteArray()
+    readCloseArray()
+
+    readStartArray()
+    readInt()
+    val time = readLong()
+    readCloseArray()
+
+    readCloseArray()
+    return Ed25519SecurityParameter(pubKey.toHex(), time)
+}
+
+
+fun CBORParser.readEd25519SecurityResult(prefetch: Boolean): Ed25519SecurityResult {
+    if (prefetch) {
+        assertStartArray()
+    } else {
+        readStartArray()
+    }
+    readStartArray()
+    readInt()
+    val signature = readByteArray()
+    readCloseArray()
+
+    readCloseArray()
+    return Ed25519SecurityResult(signature.toHex())
+}
+
+
 

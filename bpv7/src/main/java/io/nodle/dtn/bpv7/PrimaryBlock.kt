@@ -94,6 +94,7 @@ fun PrimaryBlock.checkCRC(crc : ByteArray) : Boolean {
     return buf.last().contentEquals(crc)
 }
 
+// ID is unique accross all bundle
 fun PrimaryBlock.ID(): String {
     return UUID.nameUUIDFromBytes((source.toASCIIString() +
             creationTimestamp +
@@ -102,4 +103,11 @@ fun PrimaryBlock.ID(): String {
             fragmentOffset +
             appDataLength)
             .toByteArray()).toString()
+}
+
+// fragmentedID is shared by all fragment of the same bundle
+fun PrimaryBlock.fragmentedID(): String {
+    return UUID.nameUUIDFromBytes((source.toASCIIString() +
+            creationTimestamp +
+            sequenceNumber).toByteArray()).toString()
 }

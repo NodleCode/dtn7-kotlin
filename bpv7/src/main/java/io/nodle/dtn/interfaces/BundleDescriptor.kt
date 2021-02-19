@@ -50,18 +50,21 @@ data class BundleDescriptor(
 }
 
 fun BundleDescriptor.expireAt(): Long {
-    val now = System.currentTimeMillis()
     return if (bundle.primaryBlock.creationTimestamp == 0L) {
-        if (!bundle.hasBlockType(BlockType.BundleAgeBlock.code)) {
-            0 // expire already
-        } else {
-            val localTimeSpent = now - created
-            val bundleAge = (bundle.getBlockType(BlockType.BundleAgeBlock.code).data as BundleAgeBlockData).age + localTimeSpent
-            now + bundle.primaryBlock.lifetime - bundleAge
-        }
+        bundle.getBlockType(BlockType.BundleAgeBlock.code)?.data?.run {
+            bundle.primaryBlock.lifetime - (this as BundleAgeBlockData).age + created
+        } ?: 0L
     } else {
         bundle.primaryBlock.creationTimestamp + bundle.primaryBlock.lifetime
     }
 }
 
+fun BundleDescriptor.updateAgeBlock() {
+    bundle.getBlockType(BlockType.BundleAgeBlock.code)?.apply {
+        val localTimeSpent = System.currentTimeMillis() - created
+        (this.data as BundleAgeBlockData).age += localTimeSpent
+    }
+}
+
 fun BundleDescriptor.ID() = bundle.ID()
+fun BundleDescriptor.fragmentedID() = bundle.fragmentedID()

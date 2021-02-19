@@ -10,6 +10,4 @@ interface IApplicationAgent {
 
     suspend fun deliver(bundle : Bundle) : Boolean
 
-    fun getApplicationAgentEndpointIds() : List<URI>
-
 }

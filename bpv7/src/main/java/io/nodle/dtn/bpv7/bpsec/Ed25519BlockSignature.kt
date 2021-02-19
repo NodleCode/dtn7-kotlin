@@ -5,99 +5,101 @@ import io.nodle.dtn.bpv7.eid.nullDtnEid
 import io.nodle.dtn.crypto.Ed25519SignerCheckStream
 import io.nodle.dtn.crypto.Ed25519SignerStream
 import io.nodle.dtn.crypto.toEd25519PublicKey
+import io.nodle.dtn.utils.hexToBa
 import io.nodle.dtn.utils.setFlag
+import io.nodle.dtn.utils.toHex
+import org.bouncycastle.crypto.AsymmetricCipherKeyPair
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters
 import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters
+import java.io.DataOutputStream
 import java.net.URI
-
-/**
- * @author Lucien Loiseau on 14/02/21.
- */
 
 /**
  * This security context creates an Ed25519 signature for each target block.
  * The signed data is performed over the entire target block represented
- * as a CBOR byte string.
+ * as a CBOR byte string. Each signature takes two parameters, the public key
+ * and a timestamp.
+ *
+ * @author Lucien Loiseau on 14/02/21.
  */
-enum class Ed25519SignatureParameter(val id: Int) {
-    Ed25519PublicKey(0)
-}
 
-enum class Ed25519SignatureResult(val id: Int) {
-    Signature(0)
-}
+data class Ed25519SecurityParameter(
+        val ed25519PublicKey: String,
+        val timestamp: Long
+) : AbstractSecurityParameter()
 
-fun Bundle.hasBIB(targetBlock : Number) : Boolean {
+data class Ed25519SecurityResult(
+        val signature: String
+) : AbstractSecurityResult()
+
+fun Bundle.hasBIB(targetBlock: Number): Boolean {
     return canonicalBlocks
-        .filter { it.blockType == BlockType.BlockIntegrityBlock.code }
-        .any { (it.data as AbstractSecurityBlockData).securityTargets.contains(targetBlock) }
+            .filter { it.blockType == BlockType.BlockIntegrityBlock.code }
+            .any { (it.data as AbstractSecurityBlockData).securityTargets.contains(targetBlock) }
 }
 
 @Throws(NoSuchElementException::class)
-fun Bundle.signWithEd25519(key: Ed25519PrivateKeyParameters, targets: List<Int>, author: URI = nullDtnEid()) : CanonicalBlock {
+fun Bundle.signWithEd25519(key: Ed25519PrivateKeyParameters, time: Long, targets: List<Int>, author: URI = nullDtnEid()): CanonicalBlock {
     val asb = AbstractSecurityBlockData(
-        securityContext = SecurityContext.Ed25519BlockSignature.id,
-        securitySource = author,
-        securityBlockV7Flags = 0.toLong().setFlag(SecurityBlockV7Flags.CONTEXT_PARAMETERS_PRESENT.offset),
-        securityContextParameters = arrayListOf(
-            SecurityContextParameter(Ed25519SignatureParameter.Ed25519PublicKey.id, key.generatePublicKey().encoded)))
+            securityContext = SecurityContext.Ed25519BlockSignature.id,
+            securitySource = author,
+            securityBlockV7Flags = 0.toLong().setFlag(SecurityBlockV7Flags.ContextParameterPresent.offset),
+            securityContextParameters = Ed25519SecurityParameter(key.generatePublicKey().encoded.toHex(), time))
 
     for (target in targets) {
         val signer = Ed25519SignerStream(key)
-        if(target == 0) {
-            primaryBlock.cborMarshal(signer)
+        val out = DataOutputStream(signer)
+        if (target == 0) {
+            primaryBlock.cborMarshal(out)
         } else {
-            getBlockNumber(target).cborMarshal(signer)
+            getBlockNumber(target)
+                    ?.cborMarshal(signer)
+                    ?: throw NoSuchElementException("bundle has no block number $target")
         }
+        out.writeLong(time)
+        out.flush()
         asb.securityTargets.add(target)
-        asb.securityResults.add(arrayListOf(SecurityResult(Ed25519SignatureResult.Signature.id, signer.done())))
+        asb.securityResults.add(Ed25519SecurityResult(signer.done().toHex()))
     }
 
     return CanonicalBlock(
-        blockType = BlockType.BlockIntegrityBlock.code,
-        data = asb)
+            blockType = BlockType.BlockIntegrityBlock.code,
+            data = asb)
 }
 
+// todo: unsafe cast
+fun Bundle.addEd25519Signature(key: AsymmetricCipherKeyPair, targets: List<Int>, author: URI = nullDtnEid()) =
+        addBlock(this.signWithEd25519(key.private as Ed25519PrivateKeyParameters, System.currentTimeMillis(), targets, author))
+
 fun Bundle.addEd25519Signature(key: Ed25519PrivateKeyParameters, targets: List<Int>, author: URI = nullDtnEid()) =
-    addBlock(this.signWithEd25519(key,targets, author))
+        addBlock(this.signWithEd25519(key, System.currentTimeMillis(), targets, author))
+
+fun Bundle.addEd25519Signature(key: AsymmetricCipherKeyPair, time: Long, targets: List<Int>, author: URI = nullDtnEid()) =
+        addBlock(this.signWithEd25519(key.private as Ed25519PrivateKeyParameters, time, targets, author))
+
+fun Bundle.addEd25519Signature(key: Ed25519PrivateKeyParameters, time: Long, targets: List<Int>, author: URI = nullDtnEid()) =
+        addBlock(this.signWithEd25519(key, time, targets, author))
 
 @Throws(ValidationException::class)
 fun AbstractSecurityBlockData.checkValidEd25519Signatures(bundle: Bundle) {
-    if (securityContextParameters.size != 1) {
-        throw ValidationException("asb-ed25519: missing parameter")
-    }
-
-    if (securityContextParameters[0].id != Ed25519SignatureParameter.Ed25519PublicKey.id) {
-        throw ValidationException("asb-ed25519: missing ed25519 key parameter")
-    }
-
-
-    val pubkey : Ed25519PublicKeyParameters
-    try {
-        pubkey = securityContextParameters[0].parameter.toEd25519PublicKey()
-    } catch (e: Exception) {
-        throw ValidationException("asb-ed25519: not an ed25519 key")
-    }
+    val param = securityContextParameters as Ed25519SecurityParameter
 
     for ((i, target) in securityTargets.withIndex()) {
-        val result = securityResults[i]
-        if (result.size != 1) {
-            throw ValidationException("asb-ed25519: there should be only one result per target")
-        }
-        if (result[0].id != Ed25519SignatureResult.Signature.id) {
-            throw ValidationException("asb-ed25519: result expected an ed25519 Signature but got ${result[0].id}")
-        }
-        val signature = result[0].result
-
-        val signer = Ed25519SignerCheckStream(pubkey)
+        val result = securityResults[i] as Ed25519SecurityResult
+        val signer = Ed25519SignerCheckStream(param.ed25519PublicKey.hexToBa().toEd25519PublicKey())
+        val out = DataOutputStream(signer)
         if (target == 0) {
-            bundle.primaryBlock.cborMarshal(signer)
+            bundle.primaryBlock.cborMarshal(out)
         } else {
-            bundle.getBlockNumber(target).cborMarshal(signer)
+            bundle.getBlockNumber(target)
+                    ?.cborMarshal(out)
+                    ?: throw ValidationException("asb-ed25519: bundle has no block number $target")
         }
-
-        if (!signer.done(signature)) {
+        out.writeLong(param.timestamp)
+        out.flush()
+        if (!signer.done(result.signature.hexToBa())) {
             throw ValidationException("asb-ed25519: signature verification failed on block target $target")
         }
     }
 }
+

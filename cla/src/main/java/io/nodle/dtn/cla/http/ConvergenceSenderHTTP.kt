@@ -2,6 +2,7 @@ package io.nodle.dtn.cla.http
 
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import io.nodle.dtn.bpv7.Bundle
+import io.nodle.dtn.bpv7.ID
 import io.nodle.dtn.bpv7.cborMarshal
 import io.nodle.dtn.bpv7.readBundle
 import io.nodle.dtn.interfaces.IAgent
@@ -26,7 +27,7 @@ class ConvergenceSenderHTTP(val agent : IAgent, val url: URI) : IConvergenceLaye
     }
 
     override suspend fun sendBundle(bundle: Bundle): Boolean {
-        log.debug(">> trying to upload bundle ${bundle.hashCode()} to $url")
+        log.debug(">> trying to upload bundle ${bundle.ID()} to $url")
         val url = URL(url.toString())
         return (url.openConnection() as HttpURLConnection).let { connection ->
             try {

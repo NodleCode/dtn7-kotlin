@@ -12,7 +12,7 @@ import io.nodle.dtn.interfaces.*
 abstract class BundleProtocolAgent : IAgent {
 
     var bpAdministrativeAgent: IAdministrativeAgent = AdministrativeAgent()
-    var bpRegistrar: IRegistrar = StaticRegistrar()
+    var bpRegistrar: IRegistrar  = StaticRegistrar()
     var bpRouter: IRouter = StaticRoutingTable()
 
     override fun getRegistrar(): IRegistrar = bpRegistrar
@@ -38,4 +38,6 @@ abstract class BundleProtocolAgent : IAgent {
             BundleDescriptor(bundle).apply {
                 bundleTransmission(this)
             }
+
+    abstract suspend fun checkStorageForTransmitOpportunity()
 }

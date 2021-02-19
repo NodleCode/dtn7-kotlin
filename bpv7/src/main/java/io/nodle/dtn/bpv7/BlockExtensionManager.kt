@@ -23,6 +23,7 @@ class BlockExtensionManager {
             .putElement(BlockType.BlockConfidentialityBlock.code, { it.readASBlockData() })
             .putElement(BlockType.BundleAgeBlock.code, { it.readBundleAgeBlockData() })
             .putElement(BlockType.HopCountBlock.code, { it.readHopCountBlockData() })
+            .putElement(BlockType.PreviousNodeBlock.code, { it.readPreviousNodeBlockData() })
 
     private val extensionBlockMarshalerRegister = HashMap<Int, BlockExtensionSerializer>()
             .putElement(BlockType.BlockIntegrityBlock.code,
@@ -41,22 +42,26 @@ class BlockExtensionManager {
                     { data, out ->
                         (data as HopCountBlockData).cborMarshalData(out)
                     })
+            .putElement(BlockType.PreviousNodeBlock.code,
+                    { data, out ->
+                        (data as PreviousNodeBlockData).cborMarshalData(out)
+                    })
 
-    fun isKnown(blockTypeCode: Int) : Boolean =
+    fun isKnown(blockTypeCode: Int): Boolean =
             blockTypeCode == 1 ||
-            extensionBlockParserRegister.containsKey(blockTypeCode)
+                    extensionBlockParserRegister.containsKey(blockTypeCode)
 
-    fun getExtensionParser(blockTypeCode: Int) : BlockExtensionParser? =
+    fun getExtensionParser(blockTypeCode: Int): BlockExtensionParser? =
             extensionBlockParserRegister[blockTypeCode]
 
-    fun getExtensionEncoder(blockTypeCode: Int) : BlockExtensionSerializer? =
+    fun getExtensionEncoder(blockTypeCode: Int): BlockExtensionSerializer? =
             extensionBlockMarshalerRegister[blockTypeCode]
 
     fun addExtension(
             blockTypeCode: Int,
             parser: BlockExtensionParser,
-            encoder: BlockExtensionSerializer) : Boolean {
-        if(extensionBlockParserRegister.containsKey(blockTypeCode)) {
+            encoder: BlockExtensionSerializer): Boolean {
+        if (extensionBlockParserRegister.containsKey(blockTypeCode)) {
             return false
         }
         extensionBlockParserRegister.putElement(blockTypeCode, parser)

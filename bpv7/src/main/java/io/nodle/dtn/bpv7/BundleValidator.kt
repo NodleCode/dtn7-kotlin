@@ -13,6 +13,15 @@ import io.nodle.dtn.utils.isFlagSet
 
 class ValidationException(msg: String) : Exception(msg)
 
+fun Bundle.isValid(): Boolean {
+    return try {
+        checkValid()
+        true
+    } catch(e:Exception) {
+        false
+    }
+}
+
 @Throws(ValidationException::class)
 fun Bundle.checkValid() {
     primaryBlock.checkValidPrimaryBlock(this)
@@ -68,7 +77,7 @@ fun PrimaryBlock.checkLifetimeExceeded(bundle: Bundle) {
 
     val now = System.currentTimeMillis()
     if (creationTimestamp == 0L) {
-        if ((bundle.getBlockType(BlockType.BundleAgeBlock.code).data as BundleAgeBlockData).age > lifetime) {
+        if ((bundle.getBlockType(BlockType.BundleAgeBlock.code)?.data as BundleAgeBlockData).age > lifetime) {
             throw ValidationException("bundle:${ID()} - primary: bundle has expired")
         }
     } else if (now > creationTimestamp + lifetime){

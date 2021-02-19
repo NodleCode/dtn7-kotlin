@@ -60,11 +60,15 @@ abstract class MockAgent(val localId : URI) : BundleProtocolAgent() {
         return URI.create("dtn://test/")
     }
 
-    override fun isEndpoint(eid: URI): Boolean {
+    override fun hasEndpoint(eid: URI): Boolean {
         return eid == nodeId()
     }
 
     override fun getStorage(): IStorage {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun checkStorageForTransmitOpportunity() {
         TODO("Not yet implemented")
     }
 }

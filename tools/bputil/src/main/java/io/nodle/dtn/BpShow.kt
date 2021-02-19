@@ -27,8 +27,8 @@ class BpShow : Callable<Void> {
     override fun call(): Void? {
         try {
             val bundle = cborUnmarshalBundle(System.`in`)
-            if (payload) {
-                print(String((bundle.getPayloadBlock().data as BlobBlockData).buffer))
+            if (payload && bundle.hasBlockType(BlockType.PayloadBlock)) {
+                print(String((bundle.getPayloadBlock()?.data as BlobBlockData).buffer))
             } else {
                 print(bundle)
             }

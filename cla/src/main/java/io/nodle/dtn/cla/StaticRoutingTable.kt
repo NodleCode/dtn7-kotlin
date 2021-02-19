@@ -11,6 +11,11 @@ class StaticRoutingTable : IRouter {
 
     // main routing table
     var staticRoutes : MutableMap<URI, IConvergenceLayerSender> = HashMap()
+    var default : IConvergenceLayerSender? = null
+
+    fun setDefaultRoute(cla: IConvergenceLayerSender) {
+        default = cla
+    }
 
     /**
      * findRoute returns the convergence layer to use for a given dtn endpoint id.
@@ -27,6 +32,6 @@ class StaticRoutingTable : IRouter {
                 return v
             }
         }
-        return null
+        return default
     }
 }

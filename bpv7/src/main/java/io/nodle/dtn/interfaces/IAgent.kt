@@ -12,7 +12,7 @@ interface IAgent {
 
     fun nodeId() : URI
 
-    fun isEndpoint(eid : URI) : Boolean
+    fun hasEndpoint(eid : URI) : Boolean
 
     fun getRegistrar() : IRegistrar
 

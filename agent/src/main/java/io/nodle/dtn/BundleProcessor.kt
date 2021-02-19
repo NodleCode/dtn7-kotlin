@@ -5,9 +5,7 @@ import io.nodle.dtn.bpv7.administrative.StatusAssertion
 import io.nodle.dtn.bpv7.administrative.StatusReportReason
 import io.nodle.dtn.bpv7.eid.isNullEid
 import io.nodle.dtn.bpv7.extensions.*
-import io.nodle.dtn.interfaces.BundleConstraint
-import io.nodle.dtn.interfaces.BundleDescriptor
-import io.nodle.dtn.interfaces.ID
+import io.nodle.dtn.interfaces.*
 import org.slf4j.LoggerFactory
 
 /**
@@ -22,7 +20,7 @@ val log = LoggerFactory.getLogger("BundleProcessor")
 suspend fun BundleProtocolAgent.bundleTransmission(desc: BundleDescriptor) {
     /* 5.2 - step 1 */
     log.debug("bundle: ${desc.ID()} - bundle transmission")
-    if (!desc.bundle.primaryBlock.source.isNullEid() && !isEndpoint(desc.bundle.primaryBlock.source)) {
+    if (!desc.bundle.primaryBlock.source.isNullEid() && !hasEndpoint(desc.bundle.primaryBlock.source)) {
         log.debug("bundle:${desc.ID()} - bundle's source is neither dtn:none nor a node's endpoint")
         bundleDeletion(desc, StatusReportReason.NoInformation)
         return
@@ -72,19 +70,20 @@ suspend fun BundleProtocolAgent.bundleReceive(desc: BundleDescriptor) {
             getAdministrativeAgent().sendStatusReport(this, desc, StatusAssertion.ReceivedBundle, StatusReportReason.BlockUnsupported)
         }
 
-        if (block.isFlagSet(BlockV7Flags.DeleteBundleIfNotProcessed)) {
-            log.debug("bundle:${desc.ID()}, " +
-                    "block: number=${block.blockNumber}, " +
-                    "type=${block.blockType}  - unprocessed block requested bundle deletion")
-            bundleDeletion(desc, StatusReportReason.BlockUnsupported)
-        }
-
         if (block.isFlagSet(BlockV7Flags.DiscardIfNotProcessed)) {
             log.debug("bundle:${desc.ID()}, " +
                     "block: number=${block.blockNumber}, " +
                     "type=${block.blockType}  - unprocessed block requested removal from bundle")
             // TODO need to unit test this
             iterator.remove()
+        }
+
+        if (block.isFlagSet(BlockV7Flags.DeleteBundleIfNotProcessed)) {
+            log.debug("bundle:${desc.ID()}, " +
+                    "block: number=${block.blockNumber}, " +
+                    "type=${block.blockType}  - unprocessed block requested bundle deletion")
+            bundleDeletion(desc, StatusReportReason.BlockUnsupported)
+            return
         }
     }
 
@@ -95,13 +94,7 @@ suspend fun BundleProtocolAgent.bundleReceive(desc: BundleDescriptor) {
 suspend fun BundleProtocolAgent.bundleDispatching(desc: BundleDescriptor) {
     log.debug("bundle:${desc.ID()} - dispatching bundle")
 
-    val e = catchException { desc.bundle.checkValid() }
-    if (e != null) {
-        log.debug("${e.message}")
-        return
-    }
-
-    if (isEndpoint(desc.bundle.primaryBlock.destination)) {
+    if (hasEndpoint(desc.bundle.primaryBlock.destination)) {
         /* 5.3 - step 1 */
         localDelivery(desc)
     } else {
@@ -134,6 +127,7 @@ suspend fun BundleProtocolAgent.bundleForwarding(desc: BundleDescriptor) {
     desc.addConstraint(BundleConstraint.ForwardPending)
     desc.removeConstraint(BundleConstraint.DispatchPending)
 
+    // check and increase hop count
     if (desc.bundle.hasBlockType(BlockType.HopCountBlock)) {
         val hc = desc.bundle.getHopCountBlockData()
         hc.inc()
@@ -143,6 +137,14 @@ suspend fun BundleProtocolAgent.bundleForwarding(desc: BundleDescriptor) {
             log.debug("bundle:${desc.ID()} - hop count exceeded")
             return
         }
+    }
+
+    // update age block, if any and check lifetime
+    desc.updateAgeBlock()
+    if (System.currentTimeMillis() > desc.expireAt()) {
+        log.debug("bundle:${desc.ID()} - is expired")
+        bundleDeletion(desc, StatusReportReason.LifetimeExpired)
+        return
     }
 
     if (desc.bundle.hasBlockType(BlockType.PreviousNodeBlock)) {
@@ -160,15 +162,13 @@ suspend fun BundleProtocolAgent.bundleForwarding(desc: BundleDescriptor) {
         log.debug("bundle:${desc.ID()} - forwarding failed")
     }
 
-    if (desc.bundle.hasBlockType(BlockType.HopCountBlock)) {
-        desc.bundle.getHopCountBlockData().dec()
-        log.debug("bundle:${desc.ID()} - hop count reseted")
-    }
-
     if (bundleSent) {
         if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestForward)) {
             getAdministrativeAgent().sendStatusReport(this, desc, StatusAssertion.ForwardedBundle, StatusReportReason.NoInformation)
         }
+
+        // deleter afterward
+        desc.purgeConstraints()
     } else {
         bundleContraindicated(desc)
     }
@@ -187,14 +187,4 @@ suspend fun BundleProtocolAgent.bundleDeletion(desc: BundleDescriptor, reason: S
     }
 
     desc.purgeConstraints()
-}
-
-
-fun catchException(job: () -> Unit): Exception? {
-    return try {
-        job()
-        null
-    } catch (e: Exception) {
-        e
-    }
 }

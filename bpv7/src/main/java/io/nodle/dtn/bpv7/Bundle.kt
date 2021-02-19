@@ -29,11 +29,11 @@ fun Bundle.hasBlockType(blockType: Int) = canonicalBlocks.any { it.blockType == 
 
 fun Bundle.hasBlockNumber(blockNumber: Int) = canonicalBlocks.any { it.blockNumber == blockNumber }
 
-fun Bundle.getBlockType(blockType: Int) = canonicalBlocks.first { it.blockType == blockType }
+fun Bundle.getBlockType(blockType: Int) = canonicalBlocks.firstOrNull { it.blockType == blockType }
 
-fun Bundle.getBlockNumber(blockNumber: Int) = canonicalBlocks.first { it.blockNumber == blockNumber }
+fun Bundle.getBlockNumber(blockNumber: Int) = canonicalBlocks.firstOrNull { it.blockNumber == blockNumber }
 
 fun Bundle.getPayloadBlock() = getBlockType(BlockType.PayloadBlock.code)
 
-
 fun Bundle.ID() = primaryBlock.ID()
+fun Bundle.fragmentedID() = primaryBlock.fragmentedID()
