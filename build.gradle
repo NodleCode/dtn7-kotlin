@@ -35,6 +35,7 @@ def gitSha() {
 
 ext {
     jacksonCbor = "2.11.1"
+    kotlinxCoroutine="1.4.2"
 }
 
 task clean(type: Delete) {

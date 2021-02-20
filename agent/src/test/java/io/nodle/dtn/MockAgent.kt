@@ -68,7 +68,13 @@ abstract class MockAgent(val localId : URI) : BundleProtocolAgent() {
         return eid == nodeId()
     }
 
-    suspend fun checkStorageForTransmitOpportunity() {
-        TODO("Not yet implemented")
+    override suspend fun isDuplicate(bundle: Bundle): Boolean {
+        return false
+    }
+
+    override suspend fun doneProcessing(desc: BundleDescriptor) {
+    }
+
+    override suspend fun checkForwardOpportunity() {
     }
 }

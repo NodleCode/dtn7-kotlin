@@ -20,7 +20,7 @@ abstract class BundleProtocolAgent(
         var bpRouter: IRouter = StaticRoutingTable()
 ) : IAgent {
 
-    val log = LoggerFactory.getLogger("BundleProtocolAgent")
+    val bpaLog = LoggerFactory.getLogger("BundleProtocolAgent")
 
     var agentJob: Job? = null
 
