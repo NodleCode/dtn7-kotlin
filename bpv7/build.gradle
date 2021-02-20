@@ -26,6 +26,7 @@ dependencies {
 
     // cbor
     api "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:$jacksonCbor"
+    api "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutine"
 
     // kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"

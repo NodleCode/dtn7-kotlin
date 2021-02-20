@@ -15,8 +15,11 @@ enum class BundleConstraint(val code: String) {
 }
 
 enum class BundleTag(val code: String) {
-    Incoming("incoming"),
-    Outgoing("outgoing")
+    OriginCLA("origin_cla"),
+    OriginLocal("origin_local"),
+    OriginStorage("origin_storage"),
+    Delivered("delivered"),
+    Forwarded("forwarded")
 }
 
 data class BundleDescriptor(
@@ -24,30 +27,7 @@ data class BundleDescriptor(
         var created: Long = System.currentTimeMillis(),
         var constraints: MutableList<String> = mutableListOf(),
         var tags: MutableList<String> = mutableListOf()
-) {
-    fun addConstraint(c: BundleConstraint) = addConstraint(c.code)
-    fun addConstraint(c: String) {
-        constraints.add(c)
-    }
-
-    fun hasConstraint(c: BundleConstraint) = hasConstraint(c.code)
-    fun hasConstraint(c: String): Boolean =
-        constraints.contains(c)
-
-    fun removeConstraint(c: BundleConstraint) = removeConstraint(c.code)
-    fun removeConstraint(c: String) {
-        constraints.remove(c)
-    }
-
-    fun purgeConstraints() {
-        constraints = mutableListOf()
-    }
-
-    fun addTag(t: BundleTag) = addTag(t.code)
-    fun addTag(t: String) {
-        tags.add(t)
-    }
-}
+)
 
 fun BundleDescriptor.expireAt(): Long {
     return if (bundle.primaryBlock.creationTimestamp == 0L) {

@@ -16,7 +16,9 @@ import java.net.URL
 /**
  * @author Lucien Loiseau on 17/02/21.
  */
-class ConvergenceSenderHTTP(val agent : IAgent, val url: URI) : IConvergenceLayerSender {
+class ConvergenceSenderHTTP(
+        val agent: IAgent,
+        val url: URI) : IConvergenceLayerSender {
 
     companion object {
         val log = LoggerFactory.getLogger("ConvergenceSenderHTTP")
@@ -63,10 +65,9 @@ class ConvergenceSenderHTTP(val agent : IAgent, val url: URI) : IConvergenceLaye
     private suspend fun parseResponse(inputStream: InputStream) {
         try {
             val parser = CBORFactory().createParser(inputStream)
-            while (!parser.isClosed) {
-                agent.receive(parser.readBundle())
-            }
+            agent.transmit(parser.readBundle())
         } catch (e: Exception) {
+            println("could not parse the response bundle: ${e.message}")
             //ignore
         }
     }

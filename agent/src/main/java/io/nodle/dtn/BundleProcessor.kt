@@ -27,7 +27,7 @@ suspend fun BundleProtocolAgent.bundleTransmission(desc: BundleDescriptor) {
     }
 
     /* 5.2 - step 2 */
-    desc.addConstraint(BundleConstraint.DispatchPending)
+    desc.constraints.add(BundleConstraint.DispatchPending.code)
     bundleDispatching(desc)
 }
 
@@ -41,7 +41,7 @@ suspend fun BundleProtocolAgent.bundleReceive(desc: BundleDescriptor) {
     }
 
     /* 5.6 - step 1 */
-    desc.addConstraint(BundleConstraint.DispatchPending.name)
+    desc.constraints.add(BundleConstraint.DispatchPending.code)
 
     /* 5.6 - step 2 */
     if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestReception)) {
@@ -106,10 +106,11 @@ suspend fun BundleProtocolAgent.bundleDispatching(desc: BundleDescriptor) {
 /* 5.7 */
 suspend fun BundleProtocolAgent.localDelivery(desc: BundleDescriptor) {
     bpLog.debug("bundle:${desc.ID()} - local delivery")
-    desc.addConstraint(BundleConstraint.LocalEndpoint)
+    desc.constraints.add(BundleConstraint.LocalEndpoint.code)
 
     if (getRegistrar().localDelivery(desc.bundle)?.deliver(desc.bundle) == true) {
         bpLog.debug("bundle:${desc.ID()} - bundle is delivered")
+        desc.tags.add(BundleTag.Delivered.code)
         if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestDelivery)) {
             getAdministrativeAgent().sendStatusReport(this, desc, StatusAssertion.DeliveredBundle, StatusReportReason.NoInformation)
         }
@@ -118,14 +119,14 @@ suspend fun BundleProtocolAgent.localDelivery(desc: BundleDescriptor) {
     }
 
     // delete the bundle whether it was delivered or not
-    desc.purgeConstraints()
+    desc.constraints.clear()
 }
 
 /* 5.4 */
 suspend fun BundleProtocolAgent.bundleForwarding(desc: BundleDescriptor) {
     bpLog.debug("bundle:${desc.ID()} - bundle forwarding")
-    desc.addConstraint(BundleConstraint.ForwardPending)
-    desc.removeConstraint(BundleConstraint.DispatchPending)
+    desc.constraints.add(BundleConstraint.ForwardPending.code)
+    desc.constraints.remove(BundleConstraint.DispatchPending.code)
 
     // check and increase hop count
     if (desc.bundle.hasBlockType(BlockType.HopCountBlock)) {
@@ -154,29 +155,24 @@ suspend fun BundleProtocolAgent.bundleForwarding(desc: BundleDescriptor) {
         desc.bundle.addBlock(previousNodeBlock(nodeId()))
     }
 
-    var bundleSent = false
     if (getRouter().findRoute(desc.bundle)?.sendBundle(desc.bundle) == true) {
         bpLog.debug("bundle:${desc.ID()} - forwarding succeeded")
-        bundleSent = true
-    } else {
-        bpLog.debug("bundle:${desc.ID()} - forwarding failed")
-    }
-
-    if (bundleSent) {
         if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestForward)) {
             getAdministrativeAgent().sendStatusReport(this, desc, StatusAssertion.ForwardedBundle, StatusReportReason.NoInformation)
         }
 
         // deleter afterward
-        desc.purgeConstraints()
+        desc.tags.add(BundleTag.Forwarded.code)
+        desc.constraints.clear()
     } else {
+        bpLog.debug("bundle:${desc.ID()} - forwarding failed")
         bundleContraindicated(desc)
     }
 }
 
 suspend fun BundleProtocolAgent.bundleContraindicated(desc: BundleDescriptor) {
     bpLog.debug("bundle:${desc.ID()} - bundle marked for contraindication")
-    desc.addConstraint(BundleConstraint.Contraindicated)
+    desc.constraints.add(BundleConstraint.Contraindicated.code)
 }
 
 suspend fun BundleProtocolAgent.bundleDeletion(desc: BundleDescriptor, reason: StatusReportReason) {
@@ -186,5 +182,5 @@ suspend fun BundleProtocolAgent.bundleDeletion(desc: BundleDescriptor, reason: S
         getAdministrativeAgent().sendStatusReport(this, desc, StatusAssertion.DeletedBundle, reason)
     }
 
-    desc.purgeConstraints()
+    desc.constraints.clear()
 }
