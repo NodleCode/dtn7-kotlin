@@ -97,17 +97,17 @@ fun generateDtnEid(): URI {
 }
 
 @Throws(URISyntaxException::class)
-fun createDtnEid(node: String?): URI {
+fun createDtnEid(node: String): URI {
     return URI("dtn", node, "/", null, null)
 }
 
 @Throws(URISyntaxException::class)
-fun createDtnEid(node: String?, path: String?): URI {
+fun createDtnEid(node: String, path: String): URI {
     return URI("dtn", node, path, null, null)
 }
 
 @Throws(URISyntaxException::class)
-fun createDtnEid(node: String?, path: String?, query: String?): URI {
+fun createDtnEid(node: String, path: String, query: String): URI {
     return URI("dtn", node, path, query, null)
 }
 

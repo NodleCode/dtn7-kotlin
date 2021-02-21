@@ -17,9 +17,14 @@ abstract class MockAgent(val localId : URI) : BundleProtocolAgent() {
     var delivered: MutableList<Bundle> = mutableListOf()
     var transmitted: MutableList<Bundle> = mutableListOf()
 
-    inner class MockRegistrar: IRegistrar {
+    val adm = AdministrativeAgent()
+    val reg = object: IRegistrar {
         override fun localDelivery(bundle: Bundle): IApplicationAgent? {
           return object : IApplicationAgent {
+              override fun onRegistrationActive(active: IActiveRegistration) {
+                  // ignore
+              }
+
               override suspend fun deliver(bundle: Bundle): Boolean {
                   log.debug("bundle:${bundle.ID()} - bundle delivered")
                   delivered.add(bundle)
@@ -37,7 +42,11 @@ abstract class MockAgent(val localId : URI) : BundleProtocolAgent() {
         }
     }
 
-    inner class MockRouter: IRouter {
+    val rou = object: IRouter {
+        override fun setDefaultRoute(cla: IConvergenceLayerSender?) {
+            // ignore
+        }
+
         override fun findRoute(bundle: Bundle): IConvergenceLayerSender? {
             return object : IConvergenceLayerSender {
                 override suspend fun sendBundle(bundle: Bundle): Boolean {
@@ -54,17 +63,11 @@ abstract class MockAgent(val localId : URI) : BundleProtocolAgent() {
         }
     }
 
-    @Before
-    fun registerMock() {
-        bpRegistrar = MockRegistrar()
-        bpRouter = MockRouter()
-    }
-
     override fun nodeId(): URI {
         return URI.create("dtn://test/")
     }
 
-    override fun hasEndpoint(eid: URI): Boolean {
+    override fun isLocal(eid: URI): Boolean {
         return eid == nodeId()
     }
 
@@ -77,4 +80,10 @@ abstract class MockAgent(val localId : URI) : BundleProtocolAgent() {
 
     override suspend fun checkForwardOpportunity() {
     }
+
+    override fun getAdministrativeAgent() = adm
+
+    override fun getRegistrar()  = reg
+
+    override fun getRouter() = rou
 }

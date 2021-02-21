@@ -47,13 +47,13 @@ data class Ed25519SecurityResult(
     val signature: String
 ) : AbstractSecurityResult()
 
-fun Bundle.hasBIB(targetBlock: Number): Boolean {
+fun Bundle.isSignedWithEd25519(targetBlock: Number): Boolean {
     return canonicalBlocks
         .filter { it.blockType == BlockType.BlockIntegrityBlock.code }
         .any { (it.data as AbstractSecurityBlockData).securityTargets.contains(targetBlock) }
 }
 
-fun Bundle.getBlockSignatureKey(targetBlock: Number) =
+fun Bundle.getEd25519SignatureKey(targetBlock: Number) =
     canonicalBlocks
         .filter { it.blockType == BlockType.BlockIntegrityBlock.code }
         .map { it.data as AbstractSecurityBlockData }
@@ -166,6 +166,7 @@ fun AbstractSecurityBlockData.checkValidEd25519Signatures(bundle: Bundle) {
         if (!signer.done(result.signature.hexToBa())) {
             throw ValidationException("asb-ed25519: signature verification failed on block target $target")
         }
+        println("valid signature on block $target")
     }
 }
 

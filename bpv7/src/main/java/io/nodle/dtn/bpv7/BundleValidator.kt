@@ -4,8 +4,6 @@ import io.nodle.dtn.bpv7.bpsec.*
 import io.nodle.dtn.bpv7.eid.checkValidEid
 import io.nodle.dtn.bpv7.eid.isNullEid
 import io.nodle.dtn.bpv7.extensions.BundleAgeBlockData
-import io.nodle.dtn.interfaces.ID
-import io.nodle.dtn.utils.isFlagSet
 
 /**
  * @author Lucien Loiseau on 14/02/21.
@@ -30,7 +28,7 @@ fun Bundle.checkValid() {
         block.checkValidCanonicalBlock(this)
     }
 
-    if (!primaryBlock.hasCRC() && !hasBIB(0)) {
+    if (!primaryBlock.hasCRC() && !isSignedWithEd25519(0)) {
         throw ValidationException("bundle:${ID()} - primary block must have a CRC or being the target of a BIB")
     }
 

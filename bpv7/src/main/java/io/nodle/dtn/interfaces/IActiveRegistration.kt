@@ -12,4 +12,6 @@ interface IActiveRegistration {
 
     suspend fun sendBundle(bundle : Bundle) : Boolean
 
+    suspend fun unregister()
+
 }

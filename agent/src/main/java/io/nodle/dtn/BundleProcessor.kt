@@ -20,7 +20,7 @@ val bpLog = LoggerFactory.getLogger("BundleProcessor")
 suspend fun BundleProtocolAgent.bundleTransmission(desc: BundleDescriptor) {
     /* 5.2 - step 1 */
     bpLog.debug("bundle:${desc.ID()} - bundle transmission")
-    if (!desc.bundle.primaryBlock.source.isNullEid() && !hasEndpoint(desc.bundle.primaryBlock.source)) {
+    if (!desc.bundle.primaryBlock.source.isNullEid() && !isLocal(desc.bundle.primaryBlock.source)) {
         bpLog.debug("bundle:${desc.ID()} - bundle's source is neither dtn:none nor a node's endpoint")
         bundleDeletion(desc, StatusReportReason.NoInformation)
         return
@@ -94,7 +94,13 @@ suspend fun BundleProtocolAgent.bundleReceive(desc: BundleDescriptor) {
 suspend fun BundleProtocolAgent.bundleDispatching(desc: BundleDescriptor) {
     bpLog.debug("bundle:${desc.ID()} - dispatching bundle")
 
-    if (hasEndpoint(desc.bundle.primaryBlock.destination)) {
+    if(!desc.bundle.isValid()) {
+        bpLog.debug("bundle:${desc.ID()} - is invalid!")
+        desc.constraints.clear()
+        return
+    }
+
+    if (isLocal(desc.bundle.primaryBlock.destination)) {
         /* 5.3 - step 1 */
         localDelivery(desc)
     } else {

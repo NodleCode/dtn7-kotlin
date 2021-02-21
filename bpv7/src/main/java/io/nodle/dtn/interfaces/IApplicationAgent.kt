@@ -8,6 +8,8 @@ import java.net.URI
  */
 interface IApplicationAgent {
 
+    fun onRegistrationActive(active: IActiveRegistration)
+
     suspend fun deliver(bundle : Bundle) : Boolean
 
 }

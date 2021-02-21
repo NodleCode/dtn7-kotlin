@@ -13,7 +13,7 @@ class StaticRoutingTable : IRouter {
     var staticRoutes : MutableMap<URI, IConvergenceLayerSender> = HashMap()
     var default : IConvergenceLayerSender? = null
 
-    fun setDefaultRoute(cla: IConvergenceLayerSender?) {
+    override fun setDefaultRoute(cla: IConvergenceLayerSender?) {
         default = cla
     }
 

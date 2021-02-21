@@ -1,34 +1,17 @@
 package io.nodle.dtn
 
-import io.nodle.dtn.aa.StaticRegistrar
 import io.nodle.dtn.bpv7.Bundle
 import io.nodle.dtn.bpv7.ID
-import io.nodle.dtn.cla.StaticRoutingTable
 import io.nodle.dtn.interfaces.*
-import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.Channel
 import org.slf4j.LoggerFactory
-import java.lang.Exception
 
 /**
  * @author Lucien Loiseau on 17/02/21.
  */
 
-abstract class BundleProtocolAgent(
-        var bpAdministrativeAgent: IAdministrativeAgent = AdministrativeAgent(),
-        var bpRegistrar: IRegistrar = StaticRegistrar(),
-        var bpRouter: IRouter = StaticRoutingTable()
-) : IAgent {
+abstract class BundleProtocolAgent : IAgent {
 
     val bpaLog = LoggerFactory.getLogger("BundleProtocolAgent")
-
-    var agentJob: Job? = null
-
-    override fun getRegistrar(): IRegistrar = bpRegistrar
-
-    override fun getAdministrativeAgent(): IAdministrativeAgent = bpAdministrativeAgent
-
-    override fun getRouter(): IRouter = bpRouter
 
     override suspend fun transmit(bundle: Bundle) {
         checkDuplicate(bundle) {
@@ -52,13 +35,13 @@ abstract class BundleProtocolAgent(
         }
     }
 
-    suspend fun processBundleTransmission(bundle: Bundle): BundleDescriptor =
+    private suspend fun processBundleTransmission(bundle: Bundle): BundleDescriptor =
             BundleDescriptor(bundle).apply {
                 tags.add(BundleTag.OriginLocal.code)
                 bundleTransmission(this)
             }
 
-    suspend fun processReceivedBundle(bundle: Bundle): BundleDescriptor =
+    private suspend fun processReceivedBundle(bundle: Bundle): BundleDescriptor =
             BundleDescriptor(bundle).apply {
                 tags.add(BundleTag.OriginCLA.code)
                 bundleReceive(this)

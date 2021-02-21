@@ -21,7 +21,7 @@ interface IAgent {
      * @param eid: an endpoint Id
      * @return true if the eid matches one of the application agent registered eid, false otherwise.
      */
-    fun hasEndpoint(eid : URI) : Boolean
+    fun isLocal(eid : URI) : Boolean
 
     /**
      * get the registrar instance associated with this bundle protocol agent.
