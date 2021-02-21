@@ -54,7 +54,7 @@ fun CBORGenerator.cborMarshal(params: Ed25519SecurityParameter) {
     // pubkey
     writeStartArray(2)
     writeNumber(0)
-    writeBinary(params.ed25519PublicKey.hexToBa())
+    writeBinary(params.ed25519PublicKey.encoded)
     writeEndArray()
     // timestamp
     writeStartArray(2)
@@ -125,7 +125,7 @@ fun CBORParser.readEd25519SecurityParameters(): Ed25519SecurityParameter {
     readCloseArray()
 
     readCloseArray()
-    return Ed25519SecurityParameter(pubKey.toHex(), time)
+    return Ed25519SecurityParameter(pubKey.toEd25519PublicKey(), time)
 }
 
 

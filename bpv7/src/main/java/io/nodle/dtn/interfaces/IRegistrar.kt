@@ -13,7 +13,7 @@ interface IRegistrar {
      * @param eid to register for this aa
      * @param application agent to register
      */
-    fun register(eid: URI, aa: IApplicationAgent): Boolean
+    fun register(eid: URI, aa: IApplicationAgent): IActiveRegistration
 
     /**
      * listEndpoints return a listing of all the currently registered appplication-agent
