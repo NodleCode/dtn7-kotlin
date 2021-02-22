@@ -47,7 +47,8 @@ class ConvergenceSenderHTTP(
                 bundle.cborMarshal(out)
 
                 // return response code
-                if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                if (connection.responseCode == HttpURLConnection.HTTP_ACCEPTED ||
+                        connection.responseCode == HttpURLConnection.HTTP_OK) {
                     // response may contain multiple bundle
                     parseResponse(connection.inputStream)
                     true
