@@ -7,7 +7,9 @@ import io.nodle.dtn.crypto.toEd25519PrivateKey
 import io.nodle.dtn.utils.hexToBa
 import picocli.CommandLine
 import java.net.URI
+import java.util.*
 import java.util.concurrent.Callable
+import kotlin.collections.ArrayList
 
 /**
  * @author Lucien Loiseau on 13/02/21.
@@ -50,6 +52,9 @@ class BpCreate : Callable<Void> {
     @CommandLine.Option(names = ["--crc-32"], description = ["use crc-32"])
     private var crc32 = false
 
+    @CommandLine.Option(names = ["--armor"], description = ["Base64 representation"])
+    private var armor = false
+
     override fun call(): Void? {
         val crc = if (crc16) {
             CRCType.CRC16
@@ -85,7 +90,13 @@ class BpCreate : Callable<Void> {
             }
         }
 
-        bundle.cborMarshal(System.`out`)
+        val buf = bundle.cborMarshal()
+        if(armor) {
+            val bufB64 = Base64.getEncoder().encodeToString(buf)
+            System.`out`.write(bufB64.toByteArray())
+        } else {
+            bundle.cborMarshal(System.`out`)
+        }
 
         return null
     }
