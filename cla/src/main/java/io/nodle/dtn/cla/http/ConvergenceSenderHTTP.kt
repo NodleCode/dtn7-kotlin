@@ -66,7 +66,7 @@ class ConvergenceSenderHTTP(
     private suspend fun parseResponse(inputStream: InputStream) {
         try {
             val parser = CBORFactory().createParser(inputStream)
-            agent.transmit(parser.readBundle())
+            agent.receive(parser.readBundle())
         } catch (e: Exception) {
             println("could not parse the response bundle: ${e.message}")
             //ignore
