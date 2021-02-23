@@ -4,8 +4,30 @@ import java.io.OutputStream
 import java.nio.ByteBuffer
 
 /**
- * @author Lucien Loiseau on 14/02/21.
+ * @author Lucien Loiseau on 24/02/21.
  */
+class DualOutputStream(
+        private val out1 : OutputStream,
+        private val out2 : OutputStream) : OutputStream() {
+
+    override fun write(p0: Int) {
+        out1.write(p0)
+        out2.write(p0)
+    }
+
+}
+
+class CloseProtectOutputStream(private val out: OutputStream): OutputStream() {
+
+    override fun write(p0: Int) {
+        out.write(p0)
+    }
+
+    override fun close() {
+    }
+
+}
+
 class LastBufferOutputStream(val size: Int) : OutputStream() {
 
     private val window = ByteBuffer.allocate(size)

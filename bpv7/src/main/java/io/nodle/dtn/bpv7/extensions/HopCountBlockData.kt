@@ -3,6 +3,7 @@ package io.nodle.dtn.bpv7.extensions
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.dataformat.cbor.CBORParser
 import io.nodle.dtn.bpv7.*
+import io.nodle.dtn.utils.CloseProtectOutputStream
 import io.nodle.dtn.utils.readInt
 import io.nodle.dtn.utils.readStruct
 import java.io.OutputStream
@@ -35,7 +36,7 @@ fun Bundle.getHopCountBlockData() = (canonicalBlocks
 
 @Throws(CborEncodingException::class)
 fun HopCountBlockData.cborMarshalData(out: OutputStream) {
-    CBORFactory().createGenerator(out).use {
+    CBORFactory().createGenerator(CloseProtectOutputStream(out)).use {
         it.writeStartArray(2)
         it.writeNumber(limit)
         it.writeNumber(count)

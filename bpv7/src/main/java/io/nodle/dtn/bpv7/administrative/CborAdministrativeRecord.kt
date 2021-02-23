@@ -26,7 +26,7 @@ fun AdministrativeRecord.cborMarshalData(): ByteArray =
 
 @Throws(CborEncodingException::class)
 fun AdministrativeRecord.cborMarshalData(out: OutputStream) {
-    CBORFactory().createGenerator(out).use {
+    CBORFactory().createGenerator(CloseProtectOutputStream(out)).use {
         it.writeStartArray(2)
         it.writeNumber(recordTypeCode)
         when (data) {

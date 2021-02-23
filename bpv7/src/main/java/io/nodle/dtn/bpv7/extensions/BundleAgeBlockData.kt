@@ -4,6 +4,7 @@ import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.dataformat.cbor.CBORParser
 import io.nodle.dtn.bpv7.*
 import io.nodle.dtn.interfaces.BundleDescriptor
+import io.nodle.dtn.utils.CloseProtectOutputStream
 import io.nodle.dtn.utils.readLong
 import java.io.OutputStream
 
@@ -19,7 +20,7 @@ fun ageBlock(age: Long): CanonicalBlock = CanonicalBlock(
 
 @Throws(CborEncodingException::class)
 fun BundleAgeBlockData.cborMarshalData(out: OutputStream) {
-    CBORFactory().createGenerator(out).use {
+    CBORFactory().createGenerator(CloseProtectOutputStream(out)).use {
         it.writeNumber(age)
     }
 }

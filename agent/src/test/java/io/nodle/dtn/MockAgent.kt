@@ -49,6 +49,11 @@ abstract class MockAgent(val localId : URI) : BundleProtocolAgent() {
 
         override fun findRoute(bundle: Bundle): IConvergenceLayerSender? {
             return object : IConvergenceLayerSender {
+                override suspend fun sendBundles(bundles: List<Bundle>): Boolean {
+                    bundles.map{sendBundle(bundle)}
+                    return true
+                }
+
                 override suspend fun sendBundle(bundle: Bundle): Boolean {
                     log.debug("bundle:${bundle.ID()} - bundle transmitted")
                     transmitted.add(bundle)

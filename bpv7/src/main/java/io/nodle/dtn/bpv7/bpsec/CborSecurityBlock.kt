@@ -16,7 +16,7 @@ import java.io.OutputStream
  */
 @Throws(CborEncodingException::class)
 fun AbstractSecurityBlockData.cborMarshalData(out: OutputStream) {
-    CBORFactory().createGenerator(out).use {
+    CBORFactory().createGenerator(CloseProtectOutputStream(out)).use {
         it.writeStartArray(cborGetItemCount())
         it.writeStartArray(securityTargets.size)
         for (target in securityTargets) {

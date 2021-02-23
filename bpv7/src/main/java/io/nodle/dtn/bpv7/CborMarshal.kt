@@ -7,6 +7,7 @@ import io.nodle.dtn.crypto.CRC
 import io.nodle.dtn.crypto.CRC16X25
 import io.nodle.dtn.crypto.CRC32C
 import io.nodle.dtn.crypto.NullCRC
+import io.nodle.dtn.utils.CloseProtectOutputStream
 import io.nodle.dtn.utils.DualOutputStream
 import io.nodle.dtn.utils.isFlagSet
 import java.io.ByteArrayOutputStream
@@ -29,7 +30,7 @@ fun Bundle.cborMarshal() : ByteArray {
 
 @Throws(CborEncodingException::class)
 fun Bundle.cborMarshal(out: OutputStream) {
-    CBORFactory().createGenerator(out).use {
+    CBORFactory().createGenerator(CloseProtectOutputStream(out)).use {
         it.writeStartArray()
         it.flush()
         primaryBlock.cborMarshal(out)

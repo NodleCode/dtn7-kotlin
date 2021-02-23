@@ -3,6 +3,7 @@ package io.nodle.dtn.bpv7.extensions
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.dataformat.cbor.CBORParser
 import io.nodle.dtn.bpv7.*
+import io.nodle.dtn.utils.CloseProtectOutputStream
 import java.io.OutputStream
 import java.net.URI
 
@@ -24,10 +25,9 @@ fun Bundle.getPreviousNodeBlockData() = (canonicalBlocks
         .first { it.blockType == BlockType.PreviousNodeBlock.code }
         .data as PreviousNodeBlockData)
 
-
 @Throws(CborEncodingException::class)
 fun PreviousNodeBlockData.cborMarshalData(out: OutputStream) {
-    CBORFactory().createGenerator(out).use {
+    CBORFactory().createGenerator(CloseProtectOutputStream(out)).use {
         it.cborMarshal(previous)
     }
 }

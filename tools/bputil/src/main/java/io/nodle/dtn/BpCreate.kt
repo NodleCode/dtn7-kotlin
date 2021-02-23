@@ -97,6 +97,7 @@ class BpCreate : Callable<Void> {
         } else {
             bundle.cborMarshal(System.`out`)
         }
+        System.`out`.flush()
 
         return null
     }

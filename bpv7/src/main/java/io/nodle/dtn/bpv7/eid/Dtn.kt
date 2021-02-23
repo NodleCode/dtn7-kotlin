@@ -39,16 +39,11 @@ fun URI.checkSchemeNotNull() {
 /**
  * a dtn-eid is of the form:
  *
- *
- * dtn-uri  = "dtn:" dtn-hier-part
- * |= "dtn:none"
- *
- *
+ * dtn-uri = "dtn:" ("none" / dtn-hier-part)
  * dtn-hier-part = "//" node-name name-delim demux ; a path-rootless
- * node-name     = 1*VCHAR
- * name-delim    = "/"
- * demux         = *VCHAR
- *
+ * node-name = 1*(ALPHA/DIGIT/"-"/"."/"_") reg-name
+ * name-delim = "/"
+ * demux = *VCHAR
  *
  * @param uri a dtn-eid to check
  * @throws InvalidDtnEid if the eid is invalid

@@ -2,7 +2,6 @@ package io.nodle.dtn.cla.http
 
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import io.nodle.dtn.bpv7.Bundle
-import io.nodle.dtn.bpv7.ID
 import io.nodle.dtn.bpv7.cborMarshal
 import io.nodle.dtn.bpv7.readBundle
 import io.nodle.dtn.interfaces.IAgent
@@ -31,15 +30,15 @@ open class ConvergenceSenderHTTP(
     override suspend fun sendBundle(bundle: Bundle): Boolean = sendBundles(listOf(bundle))
 
     override suspend fun sendBundles(bundles: List<Bundle>): Boolean {
-        log.debug(">> trying to upload bundles ${bundles.joinToString(",") { it.ID() }} to $url")
+        log.debug(">> trying to upload bundles ${bundles.joinToString(",") { it.primaryBlock.destination.toASCIIString() }} to $url")
         val url = URL(url.toString())
         return (url.openConnection() as HttpURLConnection).let { connection ->
             try {
                 connection.requestMethod = "POST"
                 connection.doInput = true
                 connection.doOutput = true
-                connection.connectTimeout = 2000
-                connection.readTimeout = 2000
+                connection.connectTimeout = 10000
+                connection.readTimeout = 10000
                 connection.setRequestProperty("Content-Type", "application/octet-stream")
                 connection.instanceFollowRedirects = true
                 connection.connect();
@@ -60,6 +59,7 @@ open class ConvergenceSenderHTTP(
                     false
                 }
             } catch (e: Exception) {
+                log.debug("error connecting to the endpoint: ${e.message}")
                 return@let false
             } finally {
                 connection.disconnect()
@@ -74,7 +74,7 @@ open class ConvergenceSenderHTTP(
                 agent.receive(parser.readBundle())
             }
         } catch (e: Exception) {
-            println("could not parse the response bundle: ${e.message}")
+            log.debug("could not parse the response bundle: ${e.message}")
             //ignore
         }
     }
