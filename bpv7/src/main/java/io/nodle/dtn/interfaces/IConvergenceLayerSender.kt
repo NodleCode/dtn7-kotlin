@@ -8,6 +8,8 @@ import java.net.URI
  */
 interface IConvergenceLayerSender {
 
+    suspend fun sendBundles(bundle : List<Bundle>) : Boolean
+
     suspend fun sendBundle(bundle : Bundle) : Boolean
 
     fun getPeerEndpointId() : URI

@@ -16,7 +16,7 @@ import java.net.URL
 /**
  * @author Lucien Loiseau on 17/02/21.
  */
-class ConvergenceSenderHTTP(
+open class ConvergenceSenderHTTP(
         val agent: IAgent,
         val url: URI) : IConvergenceLayerSender {
 
@@ -28,8 +28,10 @@ class ConvergenceSenderHTTP(
         return url
     }
 
-    override suspend fun sendBundle(bundle: Bundle): Boolean {
-        log.debug(">> trying to upload bundle ${bundle.ID()} to $url")
+    override suspend fun sendBundle(bundle: Bundle): Boolean = sendBundles(listOf(bundle))
+
+    override suspend fun sendBundles(bundles: List<Bundle>): Boolean {
+        log.debug(">> trying to upload bundles ${bundles.joinToString(",") { it.ID() }} to $url")
         val url = URL(url.toString())
         return (url.openConnection() as HttpURLConnection).let { connection ->
             try {
@@ -44,7 +46,9 @@ class ConvergenceSenderHTTP(
                 val out = connection.outputStream
 
                 // send bundle
-                bundle.cborMarshal(out)
+                bundles.map {
+                    it.cborMarshal(out)
+                }
 
                 // return response code
                 if (connection.responseCode == HttpURLConnection.HTTP_ACCEPTED ||
@@ -66,7 +70,9 @@ class ConvergenceSenderHTTP(
     private suspend fun parseResponse(inputStream: InputStream) {
         try {
             val parser = CBORFactory().createParser(inputStream)
-            agent.receive(parser.readBundle())
+            while (!parser.isClosed) {
+                agent.receive(parser.readBundle())
+            }
         } catch (e: Exception) {
             println("could not parse the response bundle: ${e.message}")
             //ignore
