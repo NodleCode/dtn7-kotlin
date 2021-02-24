@@ -49,10 +49,4 @@ interface IAgent {
      * @param bundle: bundle to process for transmission
      */
     suspend fun transmit(bundle : Bundle)
-
-    /**
-     * this is to tell the bundle protocol agent that there might be an opportunity for
-     * communication and it needs to check the network interface and storage.
-     */
-    suspend fun checkForwardOpportunity()
 }
