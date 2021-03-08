@@ -83,7 +83,7 @@ abstract class MockAgent(val localId : URI) : BundleProtocolAgent() {
     override suspend fun doneProcessing(desc: BundleDescriptor) {
     }
 
-    override suspend fun checkForwardOpportunity() {
+    suspend fun checkForwardOpportunity() {
     }
 
     override fun getAdministrativeAgent() = adm

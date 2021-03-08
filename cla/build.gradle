@@ -21,6 +21,9 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     api group: 'org.slf4j', name:'slf4j-api', version: '1.7.30'
 
+    // cbor
+    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:$jacksonCbor"
+
     // bpv7
     implementation project(path: ':bpv7')
 
