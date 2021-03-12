@@ -19,7 +19,7 @@ val bpLog = LoggerFactory.getLogger("BundleProcessor")
 
 suspend fun BundleProtocolAgent.bundleTransmission(desc: BundleDescriptor) {
     /* 5.2 - step 1 */
-    bpLog.debug("bundle:${desc.ID()} - bundle transmission")
+    bpLog.debug("bundle:${desc.ID()} - bundle transmission ${desc.bundle.primaryBlock.source.toASCIIString()} -> ${desc.bundle.primaryBlock.destination.toASCIIString()}")
     if (!desc.bundle.primaryBlock.source.isNullEid() && !isLocal(desc.bundle.primaryBlock.source)) {
         bpLog.debug("bundle:${desc.ID()} - bundle's source is neither dtn:none nor a node's endpoint")
         bundleDeletion(desc, StatusReportReason.NoInformation)
@@ -33,7 +33,7 @@ suspend fun BundleProtocolAgent.bundleTransmission(desc: BundleDescriptor) {
 
 /* 5.6 */
 suspend fun BundleProtocolAgent.bundleReceive(desc: BundleDescriptor) {
-    bpLog.debug("bundle:${desc.ID()} - bundle receive")
+    bpLog.debug("bundle:${desc.ID()} - bundle receive ${desc.bundle.primaryBlock.source.toASCIIString()} -> ${desc.bundle.primaryBlock.destination.toASCIIString()}")
 
     if (desc.constraints.isNotEmpty()) {
         bpLog.debug("bundle:${desc.ID()} - received bundle is already known")
