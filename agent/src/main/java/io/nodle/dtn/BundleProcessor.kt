@@ -46,7 +46,12 @@ suspend fun BundleProtocolAgent.bundleReceive(desc: BundleDescriptor) {
     /* 5.6 - step 2 */
     if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestReception)) {
         bpLog.debug("bundle:${desc.ID()} - request reporting on reception")
-        getAdministrativeAgent().sendStatusReport(this, desc, StatusAssertion.ReceivedBundle, StatusReportReason.NoInformation)
+        getAdministrativeAgent().sendStatusReport(
+            this,
+            desc,
+            StatusAssertion.ReceivedBundle,
+            StatusReportReason.NoInformation
+        )
     }
 
     /* 5.6 - step 3 */
@@ -60,28 +65,41 @@ suspend fun BundleProtocolAgent.bundleReceive(desc: BundleDescriptor) {
             continue
         }
 
-        bpLog.debug("bundle:${desc.ID()}, " +
-                "block: number=${block.blockNumber}, " +
-                "type=${block.blockType}  - block is unknown ")
-        if (block.isFlagSet(BlockV7Flags.StatusReportIfNotProcessed)) {
-            bpLog.debug("bundle:${desc.ID()}, " +
+        bpLog.debug(
+            "bundle:${desc.ID()}, " +
                     "block: number=${block.blockNumber}, " +
-                    "type=${block.blockType}  - unprocessed block requested reporting ")
-            getAdministrativeAgent().sendStatusReport(this, desc, StatusAssertion.ReceivedBundle, StatusReportReason.BlockUnsupported)
+                    "type=${block.blockType}  - block is unknown "
+        )
+        if (block.isFlagSet(BlockV7Flags.StatusReportIfNotProcessed)) {
+            bpLog.debug(
+                "bundle:${desc.ID()}, " +
+                        "block: number=${block.blockNumber}, " +
+                        "type=${block.blockType}  - unprocessed block requested reporting "
+            )
+            getAdministrativeAgent().sendStatusReport(
+                this,
+                desc,
+                StatusAssertion.ReceivedBundle,
+                StatusReportReason.BlockUnsupported
+            )
         }
 
         if (block.isFlagSet(BlockV7Flags.DiscardIfNotProcessed)) {
-            bpLog.debug("bundle:${desc.ID()}, " +
-                    "block: number=${block.blockNumber}, " +
-                    "type=${block.blockType}  - unprocessed block requested removal from bundle")
+            bpLog.debug(
+                "bundle:${desc.ID()}, " +
+                        "block: number=${block.blockNumber}, " +
+                        "type=${block.blockType}  - unprocessed block requested removal from bundle"
+            )
             // TODO need to unit test this
             iterator.remove()
         }
 
         if (block.isFlagSet(BlockV7Flags.DeleteBundleIfNotProcessed)) {
-            bpLog.debug("bundle:${desc.ID()}, " +
-                    "block: number=${block.blockNumber}, " +
-                    "type=${block.blockType}  - unprocessed block requested bundle deletion")
+            bpLog.debug(
+                "bundle:${desc.ID()}, " +
+                        "block: number=${block.blockNumber}, " +
+                        "type=${block.blockType}  - unprocessed block requested bundle deletion"
+            )
             bundleDeletion(desc, StatusReportReason.BlockUnsupported)
             return
         }
@@ -94,8 +112,10 @@ suspend fun BundleProtocolAgent.bundleReceive(desc: BundleDescriptor) {
 suspend fun BundleProtocolAgent.bundleDispatching(desc: BundleDescriptor) {
     bpLog.debug("bundle:${desc.ID()} - dispatching bundle")
 
-    if(!desc.bundle.isValid()) {
-        bpLog.debug("bundle:${desc.ID()} - is invalid!")
+    try {
+        desc.bundle.checkValid()
+    } catch (e: Exception) {
+        bpLog.debug("bundle:${desc.ID()} - is invalid! ${e.message}")
         desc.constraints.clear()
         return
     }
@@ -118,7 +138,12 @@ suspend fun BundleProtocolAgent.localDelivery(desc: BundleDescriptor) {
         bpLog.debug("bundle:${desc.ID()} - bundle is delivered")
         desc.tags.add(BundleTag.Delivered.code)
         if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestDelivery)) {
-            getAdministrativeAgent().sendStatusReport(this, desc, StatusAssertion.DeliveredBundle, StatusReportReason.NoInformation)
+            getAdministrativeAgent().sendStatusReport(
+                this,
+                desc,
+                StatusAssertion.DeliveredBundle,
+                StatusReportReason.NoInformation
+            )
         }
     } else {
         bpLog.debug("bundle:${desc.ID()} - delivery unsuccessful")
@@ -164,7 +189,12 @@ suspend fun BundleProtocolAgent.bundleForwarding(desc: BundleDescriptor) {
     if (getRouter().findRoute(desc.bundle)?.sendBundle(desc.bundle) == true) {
         bpLog.debug("bundle:${desc.ID()} - forwarding succeeded")
         if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestForward)) {
-            getAdministrativeAgent().sendStatusReport(this, desc, StatusAssertion.ForwardedBundle, StatusReportReason.NoInformation)
+            getAdministrativeAgent().sendStatusReport(
+                this,
+                desc,
+                StatusAssertion.ForwardedBundle,
+                StatusReportReason.NoInformation
+            )
         }
 
         // deleter afterward

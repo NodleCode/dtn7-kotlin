@@ -4,6 +4,7 @@ import io.nodle.dtn.bpv7.bpsec.*
 import io.nodle.dtn.bpv7.eid.checkValidEid
 import io.nodle.dtn.bpv7.eid.isNullEid
 import io.nodle.dtn.bpv7.extensions.BundleAgeBlockData
+import org.slf4j.LoggerFactory
 
 /**
  * @author Lucien Loiseau on 14/02/21.
