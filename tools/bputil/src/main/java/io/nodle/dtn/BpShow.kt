@@ -28,7 +28,7 @@ class BpShow : Callable<Void> {
         try {
             val bundle = cborUnmarshalBundle(System.`in`)
             if (payload && bundle.hasBlockType(BlockType.PayloadBlock)) {
-                print(String((bundle.getPayloadBlock()?.data as BlobBlockData).buffer))
+                System.`out`.write((bundle.getPayloadBlock()?.data as BlobBlockData).buffer)
             } else {
                 print(bundle)
             }

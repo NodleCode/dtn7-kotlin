@@ -35,7 +35,7 @@ class BpCreate : Callable<Void> {
     private var flags: Long = 0
 
     @CommandLine.Option(names = ["-l", "--lifetime"], description = ["lifetime of the bundle"])
-    private var lifetime: Long = 0
+    private var lifetime: Long = 60000
 
     @CommandLine.Option(names = ["--age"], description = ["add an age block (set timestamp to 0)"])
     private var age: Long = 0
@@ -68,7 +68,7 @@ class BpCreate : Callable<Void> {
                 .reportTo(URI.create(report))
                 .procV7Flags(flags)
                 .crcType(crc)
-                .lifetime(lifetime)
+                .lifetime(System.currentTimeMillis()+lifetime)
                 .makeBundle()
                 .addBlock(payloadBlock(System.`in`.readBytes()).crcType(crc))
 
