@@ -1,9 +1,6 @@
 package io.nodle.dtn.interfaces
 
 import io.nodle.dtn.bpv7.Bundle
-import io.nodle.dtn.bpv7.administrative.StatusAssertion
-import io.nodle.dtn.bpv7.administrative.StatusReportReason
-import kotlinx.coroutines.CoroutineScope
 import java.net.URI
 
 /**
