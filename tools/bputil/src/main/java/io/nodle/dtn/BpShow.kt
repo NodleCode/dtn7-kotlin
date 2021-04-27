@@ -1,5 +1,6 @@
 package io.nodle.dtn
 
+import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import io.nodle.dtn.bpv7.*
 import picocli.CommandLine
 import java.util.concurrent.Callable
@@ -21,24 +22,30 @@ class BpShow : Callable<Void> {
     )
     private var payload = false
 
-    @CommandLine.Option(names = ["--valid"], description = ["use crc-32"])
+    @CommandLine.Option(names = ["--valid"], description = ["only checks if bundle is valid (ignore -p)"])
     private var validate = false
 
     override fun call(): Void? {
         try {
-            val bundle = cborUnmarshalBundle(System.`in`)
-            if (payload && bundle.hasBlockType(BlockType.PayloadBlock)) {
-                System.`out`.write((bundle.getPayloadBlock()?.data as BlobBlockData).buffer)
-            } else {
-                print(bundle)
-            }
-            if(validate) {
-                bundle.checkValid()
-                println("\nbundle is valid!")
+            val parser = CBORFactory().createParser(System.`in`)
+            while (!parser.isClosed) {
+                val bundle = parser.readBundle()
+                if (!validate) {
+                    if (payload && bundle.hasBlockType(BlockType.PayloadBlock)) {
+                        System.`out`.write((bundle.getPayloadBlock()?.data as BlobBlockData).buffer)
+                    } else {
+                        println(bundle)
+                    }
+                } else {
+                    bundle.checkValid()
+                    println("bundle is valid!")
+                }
             }
         } catch (e: CborParsingException) {
-            println("\nerror format bundle: ${e.message}")
-        } catch(e : ValidationException) {
+            if(e.message != "expected start array but got null") {
+                println("\nerror format bundle: ${e.message}")
+            }
+        } catch (e: ValidationException) {
             println("\nerror bundle is not valid: ${e.message}")
         }
 
