@@ -19,7 +19,7 @@ afterEvaluate {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    api group: 'org.slf4j', name:'slf4j-api', version: '1.7.30'
+    api group: 'org.slf4j', name:'slf4j-api', version: "$slf4_logger"
 
     // bpv7
     implementation project(path: ':bpv7')
@@ -28,5 +28,11 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 
     // test only dependencies
-    testImplementation 'junit:junit:4.12'
+    testImplementation "junit:junit:$junit"
+
+    // coroutine test kotlin
+    testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutineTest"
+
+    // Mockito
+    testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoVersion"
 }

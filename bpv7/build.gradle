@@ -19,10 +19,10 @@ afterEvaluate {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    api group: 'org.slf4j', name:'slf4j-api', version: '1.7.30'
+    api group: 'org.slf4j', name:'slf4j-api', version: "$slf4_logger"
 
     // crypto
-    api group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.65'
+    api group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: "$bounty"
 
     // cbor
     api "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:$jacksonCbor"
@@ -31,5 +31,11 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 
     // test only dependencies
-    testImplementation 'junit:junit:4.12'
+    testImplementation "junit:junit:$junit"
+
+    // coroutine test kotlin
+    testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutineTest"
+
+    // Mockito
+    testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoVersion"
 }
