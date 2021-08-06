@@ -19,7 +19,8 @@ configure(coveredProject) { prj ->
             html.enabled = true
         }
 
-        final fileFilter = [
+        final fileFilter = [//bpv7
+                '**/*RegistrationAlreadyExists*.*',
                 '**/R.class',
                 '**/R$*.class',
                 '**/BuildConfig.*',

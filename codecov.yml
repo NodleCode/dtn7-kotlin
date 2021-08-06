@@ -6,6 +6,7 @@
       - "**/Manifest*.*"
       - "**/*Test*.*"
       - "**/*Mock*.*"
+      - "**/*RegistrationAlreadyExists*.*"
       - "**/*$ViewInjector*.*"
       - "**/*$ViewBinder*.*"
       - "**/*_MembersInjector.class"
