@@ -21,6 +21,14 @@ configure(coveredProject) { prj ->
 
         final fileFilter = [//bpv7
                 '**/*RegistrationAlreadyExists*.*',
+                '**/*BpCreate*.*',
+                '**/*BpKey*.*',
+                '**/*BpKeyCreate*.*',
+                '**/*BpKeyShow*.*',
+                '**/*BpShow*.*',
+                '**/*BpStatus*.*',
+                '**/*BpUtil*.*',
+                '**/*Application*.*',
                 '**/R.class',
                 '**/R$*.class',
                 '**/BuildConfig.*',

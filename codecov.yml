@@ -6,6 +6,14 @@
       - "**/Manifest*.*"
       - "**/*Test*.*"
       - "**/*Mock*.*"
+      - "**/*Application*.*"
+      - "**/*BpCreate*.*",
+      - "**/*BpKey*.*",
+      - "**/*BpKeyCreate*.*",
+      - "**/*BpKeyShow*.*",
+      - "**/*BpShow*.*",
+      - "**/*BpStatus*.*",
+      - "**/*BpUtil*.*",
       - "**/*RegistrationAlreadyExists*.*"
       - "**/*$ViewInjector*.*"
       - "**/*$ViewBinder*.*"
