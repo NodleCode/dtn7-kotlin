@@ -114,6 +114,26 @@ public object MockBundle {
         .addBlock(previousNodeBlock(localNodeId))
         .addEd25519Signature(keyPair.private as Ed25519PrivateKeyParameters, listOf(0, 1))
 
+    val outBundle8 = PrimaryBlock()
+        .destination(remoteNodeId)
+        .source(localNodeId)
+        .reportTo(remoteNodeId)
+        .crcType(CRCType.CRC32)
+        .procV7Flags(BundleV7Flags.StatusRequestForward)
+        .makeBundle()
+        .addBlock(payloadBlock(ByteArray(10000)))
+        .addEd25519Signature(keyPair.private as Ed25519PrivateKeyParameters, listOf(0, 1))
+
+    val outBundle9 = PrimaryBlock()
+        .destination(remoteNodeId)
+        .source(localNodeId)
+        .reportTo(remoteNodeId)
+        .crcType(CRCType.CRC32)
+        .procV7Flags(BundleV7Flags.StatusRequestForward)
+        .makeBundle()
+        .addBlock(payloadBlock(ByteArray(10000)))
+        .addEd25519Signature(keyPair.private as Ed25519PrivateKeyParameters, listOf(0, 1))
+
     val admRecord = AdministrativeRecord(
         recordTypeCode = RecordTypeCode.StatusRecordType.code,
         data = StatusReport()

@@ -28,6 +28,7 @@ class TestBundleDescriptor : MockAgent(MockBundle.localNodeId) {
     private val constrains = mutableListOf<String>()
     private val tags = mutableListOf<String>()
     private val created = System.currentTimeMillis()
+    private val mockAgent = mock<BundleProtocolAgent>()
 
     private val mockPrimaryBlock = mock<PrimaryBlock>() {
         onGeneric { mock.lifetime } doReturn 1000L
@@ -114,6 +115,37 @@ class TestBundleDescriptor : MockAgent(MockBundle.localNodeId) {
 
             /* Then */
             assertEquals(desc.tags.size, 1)
+        }
+    }
+
+    @Test
+    fun stage7_testDescriptorConstrains() {
+        runBlockingTest {
+            /* Given */
+            desc.bundle = MockBundle.outBundle3
+            desc.constraints = constrains
+            desc.constraints.add("test")
+
+            /* When */
+            mockAgent.bundleReceive(desc)
+
+            /* Then */
+            assertEquals(desc.constraints.size, 1)
+        }
+    }
+
+    @Test
+    fun stage8_testBundleContraindicated() {
+        runBlockingTest {
+            /* Given */
+            desc.constraints = constrains
+            desc.bundle = MockBundle.outBundle3
+
+            /* When */
+            mockAgent.bundleContraindicated(desc)
+
+            /* Then */
+            assertEquals(desc.constraints.size, 1)
         }
     }
 }
