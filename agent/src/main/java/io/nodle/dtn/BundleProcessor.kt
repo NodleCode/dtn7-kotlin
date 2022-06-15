@@ -90,7 +90,6 @@ suspend fun BundleProtocolAgent.bundleReceive(desc: BundleDescriptor) {
                         "block: number=${block.blockNumber}, " +
                         "type=${block.blockType}  - unprocessed block requested removal from bundle"
             )
-            // TODO need to unit test this
             iterator.remove()
         }
 

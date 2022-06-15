@@ -1,6 +1,7 @@
 package io.nodle.dtn.bpv7
 
 import io.nodle.dtn.utils.LastBufferOutputStream
+import io.nodle.dtn.utils.setFlag
 
 /**
  * @author Lucien Loiseau on 12/02/21.
@@ -34,6 +35,11 @@ fun CanonicalBlock.number(n : Int) : CanonicalBlock {
 
 fun CanonicalBlock.procV7Flags(flags : Long) : CanonicalBlock {
     this.procV7flags = flags
+    return this
+}
+
+fun CanonicalBlock.setFlag(flag : BlockV7Flags) : CanonicalBlock {
+    this.procV7flags = this.procV7flags.setFlag(flag.offset)
     return this
 }
 

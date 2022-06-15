@@ -101,7 +101,6 @@ fun Bundle.signWithEd25519(
     )
 }
 
-// todo: unsafe cast
 fun Bundle.addEd25519Signature(
     key: AsymmetricCipherKeyPair,
     targets: List<Int>,

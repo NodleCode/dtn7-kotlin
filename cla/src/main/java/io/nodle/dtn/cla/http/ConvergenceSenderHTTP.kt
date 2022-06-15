@@ -6,6 +6,7 @@ import io.nodle.dtn.bpv7.cborMarshal
 import io.nodle.dtn.bpv7.readBundle
 import io.nodle.dtn.interfaces.IAgent
 import io.nodle.dtn.interfaces.IConvergenceLayerSender
+import io.nodle.dtn.utils.toHex
 import org.slf4j.LoggerFactory
 import java.io.InputStream
 import java.net.HttpURLConnection
@@ -16,8 +17,8 @@ import java.net.URL
  * @author Lucien Loiseau on 17/02/21.
  */
 open class ConvergenceSenderHTTP(
-        val agent: IAgent,
-        val url: URI) : IConvergenceLayerSender {
+    val agent: IAgent,
+    var url: URI) : IConvergenceLayerSender {
 
     companion object {
         val log = LoggerFactory.getLogger("ConvergenceSenderHTTP")
@@ -51,7 +52,7 @@ open class ConvergenceSenderHTTP(
 
                 // return response code
                 if (connection.responseCode == HttpURLConnection.HTTP_ACCEPTED ||
-                        connection.responseCode == HttpURLConnection.HTTP_OK) {
+                    connection.responseCode == HttpURLConnection.HTTP_OK) {
                     // response may contain multiple bundle
                     parseResponse(connection.inputStream)
                     true

@@ -25,10 +25,6 @@ fun HopCountBlockData.inc() {
     count++
 }
 
-fun HopCountBlockData.dec() {
-    count--
-}
-
 fun Bundle.getHopCountBlockData() = (canonicalBlocks
         .first { it.blockType == BlockType.HopCountBlock.code }
         .data as HopCountBlockData)
