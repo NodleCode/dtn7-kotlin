@@ -17,8 +17,8 @@ import java.net.URL
  * @author Lucien Loiseau on 17/02/21.
  */
 open class ConvergenceSenderHTTP(
-        val agent: IAgent,
-        var url: URI) : IConvergenceLayerSender {
+    val agent: IAgent,
+    var url: URI) : IConvergenceLayerSender {
 
     companion object {
         val log = LoggerFactory.getLogger("ConvergenceSenderHTTP")
@@ -31,7 +31,7 @@ open class ConvergenceSenderHTTP(
     override suspend fun sendBundle(bundle: Bundle): Boolean = sendBundles(listOf(bundle))
 
     override suspend fun sendBundles(bundles: List<Bundle>): Boolean {
-        println(">> trying to upload bundles ${bundles.joinToString(",") { it.primaryBlock.destination.toASCIIString() }} to $url")
+        log.debug(">> trying to upload bundles ${bundles.joinToString(",") { it.primaryBlock.destination.toASCIIString() }} to $url")
         val url = URL(url.toString())
         return (url.openConnection() as HttpURLConnection).let { connection ->
             try {
@@ -46,27 +46,21 @@ open class ConvergenceSenderHTTP(
                 val out = connection.outputStream
 
                 // send bundle
-                var data = bundles.map {
-                    it.cborMarshal()
+                bundles.map {
+                    it.cborMarshal(out)
                 }
-
-                // show bundles
-                print(data[0].toHex())
-
-                // show out
 
                 // return response code
                 if (connection.responseCode == HttpURLConnection.HTTP_ACCEPTED ||
-                        connection.responseCode == HttpURLConnection.HTTP_OK) {
+                    connection.responseCode == HttpURLConnection.HTTP_OK) {
                     // response may contain multiple bundle
-                    println("success")
                     parseResponse(connection.inputStream)
                     true
                 } else {
                     false
                 }
             } catch (e: Exception) {
-                println("error connecting to the endpoint: ${e.message}")
+                log.debug("error connecting to the endpoint: ${e.message}")
                 return@let false
             } finally {
                 connection.disconnect()
@@ -76,18 +70,12 @@ open class ConvergenceSenderHTTP(
 
     private suspend fun parseResponse(inputStream: InputStream) {
         try {
-            println("parsing started")
-            println(inputStream.readBytes().toHex())
             val parser = CBORFactory().createParser(inputStream)
             while (!parser.isClosed) {
-                var bundle = parser.readBundle()
-
-                agent.receive(bundle)
-
-                print("Parsed: $bundle")
+                agent.receive(parser.readBundle())
             }
         } catch (e: Exception) {
-            println("could not parse the response bundle: ${e.message}")
+            log.debug("could not parse the response bundle: ${e.message}")
             //ignore
         }
     }
