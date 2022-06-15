@@ -96,7 +96,7 @@ class ConvergenceSenderHTTPTest {
     @Test
     fun test3_sendBundleConnectionFailed() {
         /* Given */
-        val http = ConvergenceSenderHTTP(agent, URI.create("https://nodle.io"))
+        val http = ConvergenceSenderHTTP(agent, URI.create("https://dtn.nodle.io"))
 
         /* THen */
         runBlockingTest {
