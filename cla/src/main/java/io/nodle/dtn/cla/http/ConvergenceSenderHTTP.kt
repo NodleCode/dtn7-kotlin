@@ -17,7 +17,7 @@ import java.net.URL
  */
 open class ConvergenceSenderHTTP(
         val agent: IAgent,
-        val url: URI) : IConvergenceLayerSender {
+        var url: URI) : IConvergenceLayerSender {
 
     companion object {
         val log = LoggerFactory.getLogger("ConvergenceSenderHTTP")
