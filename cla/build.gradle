@@ -27,9 +27,6 @@ dependencies {
     // bpv7
     implementation project(path: ':bpv7')
 
-    // kotlin
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-
     // test only dependencies
     testImplementation "junit:junit:$junit"
 

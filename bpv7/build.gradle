@@ -27,9 +27,6 @@ dependencies {
     // cbor
     api "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:$jacksonCbor"
 
-    // kotlin
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-
     // test only dependencies
     testImplementation "junit:junit:$junit"
 

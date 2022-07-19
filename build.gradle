@@ -1,7 +1,7 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    ext.kotlin_version = '1.5.21'
+    ext.kotlin_version = '1.6.21'
     repositories {
         google()
         jcenter()
@@ -37,13 +37,13 @@ def gitSha() {
 
 ext {
     jacksonCbor = "2.11.1"
-    kotlinxCoroutine="1.5.1"
+    kotlinxCoroutine="1.6.0"
     junit = "4.12"
     slf4_logger = "1.7.30"
     bounty = "1.65"
     picocli = "3.6.1"
     mockitoVersion = "3.2.0"
-    coroutineTest = "1.5.1"
+    coroutineTest = "1.6.0"
 }
 
 task clean(type: Delete) {

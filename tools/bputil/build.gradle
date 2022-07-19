@@ -20,9 +20,6 @@ dependencies {
     // logger
     implementation group: 'org.slf4j', name: 'slf4j-simple', version: "$slf4_logger"
 
-    // kotlin
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-
     // picocli framework for RequestMessage Line Interface
     implementation "info.picocli:picocli:$picocli"
 
