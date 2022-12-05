@@ -35,6 +35,3 @@ dependencies {
     // Mockito
     testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoVersion"
 }
-
-sourceCompatibility = JavaVersion.VERSION_1_8
-targetCompatibility = JavaVersion.VERSION_1_8

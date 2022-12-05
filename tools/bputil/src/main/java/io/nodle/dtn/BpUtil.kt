@@ -23,5 +23,5 @@ class BpUtil : Callable<Void> {
 }
 
 fun main(args: Array<String>) {
-    CommandLine.call(BpUtil(), *args)
+    CommandLine(BpUtil()).execute(*args)
 }

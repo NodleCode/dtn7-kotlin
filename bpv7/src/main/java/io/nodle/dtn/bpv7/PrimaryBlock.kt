@@ -20,7 +20,7 @@ data class PrimaryBlock(
     var destination: URI = nullDtnEid(),
     var source: URI = nullDtnEid(),
     var reportTo: URI = nullDtnEid(),
-    var creationTimestamp: Long = System.currentTimeMillis(),
+    var creationTimestamp: DtnTime = dtnTimeNow(),
     var sequenceNumber: Long = sequenceCounter++,
     var lifetime: Long = 3600000,
     var fragmentOffset: Long = 0,

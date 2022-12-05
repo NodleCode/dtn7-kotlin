@@ -3,6 +3,7 @@ package io.nodle.dtn
 import io.nodle.dtn.bpv7.Bundle
 import io.nodle.dtn.bpv7.ID
 import io.nodle.dtn.interfaces.*
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 /**
@@ -11,7 +12,7 @@ import org.slf4j.LoggerFactory
 
 abstract class BundleProtocolAgent : IAgent {
 
-    val bpaLog = LoggerFactory.getLogger("BundleProtocolAgent")
+    val bpaLog: Logger = LoggerFactory.getLogger("BundleProtocolAgent")
 
     override suspend fun transmit(bundle: Bundle) {
         checkDuplicate(bundle) {

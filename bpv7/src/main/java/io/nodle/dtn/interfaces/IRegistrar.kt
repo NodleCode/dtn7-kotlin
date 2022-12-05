@@ -1,6 +1,5 @@
 package io.nodle.dtn.interfaces
 
-import io.nodle.dtn.bpv7.Bundle
 import java.net.URI
 
 /**
@@ -26,13 +25,13 @@ interface IRegistrar {
     fun listEndpoint() : List<URI>
 
     /**
-     * localDelivery returns the matching application agent for a given bundle, if any
-     * it returns the first application agent that matches the destination eid of the bundle
+     * localDelivery returns the matching application agent for a given destination eid, if any
+     * it returns the first application agent that matches the eid
      * or null if no such endpoint were found.
      *
-     * @param bundle the bundle to forwards
+     * @param destination the endpoint id
      * @return a convergence layer or null
      */
-    fun localDelivery(bundle : Bundle) : IApplicationAgent?
+    fun localDelivery(destination: URI) : IApplicationAgent?
 
 }

@@ -18,6 +18,12 @@ fun ageBlock(age: Long): CanonicalBlock = CanonicalBlock(
         data = BundleAgeBlockData(age)
 )
 
+
+fun Bundle.getAgeBlockData() = (canonicalBlocks
+    .firstOrNull { it.blockType == BlockType.BundleAgeBlock.code }
+    ?.data as BundleAgeBlockData?)
+
+
 @Throws(CborEncodingException::class)
 fun BundleAgeBlockData.cborMarshalData(out: OutputStream) {
     CBORFactory().createGenerator(CloseProtectOutputStream(out)).use {

@@ -132,7 +132,7 @@ fun CanonicalBlock.cborMarshal(out: OutputStream) {
 
 @Throws(CborEncodingException::class)
 fun CBORGenerator.writeBlockData(blockType: Int, data: ExtensionBlockData) {
-    bpv7ExtensionManager.getExtensionEncoder(blockType)?.let { marshal ->
+    getBpv7BlockExtensionEncoder(blockType)?.let { marshal ->
         val buf = ByteArrayOutputStream()
         marshal(data, buf)
         writeBinary(buf.toByteArray())

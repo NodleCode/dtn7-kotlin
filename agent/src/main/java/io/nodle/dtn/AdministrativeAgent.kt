@@ -17,8 +17,9 @@ import org.slf4j.LoggerFactory
  */
 class AdministrativeAgent : IAdministrativeAgent {
 
-    val log = LoggerFactory.getLogger("AdministrativeAgent")
+    private val log = LoggerFactory.getLogger("AdministrativeAgent")
 
+    /* 6.2 */
     override suspend fun sendStatusReport(
             core: IAgent,
             desc: BundleDescriptor,
@@ -33,6 +34,7 @@ class AdministrativeAgent : IAdministrativeAgent {
             return
         }
 
+        /* step 1 */
         log.debug("bundle:${desc.ID()}, " +
                 "status=${assertion}, " +
                 "reason=${reason} - sending a status record")
@@ -48,6 +50,7 @@ class AdministrativeAgent : IAdministrativeAgent {
                 .makeBundle()
                 .addBlock(payloadBlock(report))
 
+        /* step 2 */
         core.transmit(adm)
     }
 }

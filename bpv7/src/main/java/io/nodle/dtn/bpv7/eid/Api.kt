@@ -7,7 +7,7 @@ import java.net.URISyntaxException
 /**
  * @author Lucien Loiseau on 22/02/21.
  */
-class InvalidApiEid : Exception()
+class InvalidApiEid : InvalidEid()
 
 @Throws(InvalidDtnEid::class, InvalidApiEid::class)
 fun URI.checkValidApiEid() {

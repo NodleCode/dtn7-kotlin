@@ -1,7 +1,7 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    ext.kotlin_version = '1.5.21'
+    ext.kotlin_version = '1.7.22'
     repositories {
         google()
         jcenter()
@@ -26,7 +26,7 @@ allprojects {
 
 project.apply from: project.rootDir.absolutePath + '/jacocoLib.gradle'
 
-def gitSha() {
+static def gitSha() {
     def sha = ""
     def proc = "git rev-parse --short HEAD".execute()
     proc.in.eachLine { line -> sha = line }
@@ -36,14 +36,15 @@ def gitSha() {
 }
 
 ext {
-    jacksonCbor = "2.11.1"
-    kotlinxCoroutine="1.5.1"
-    junit = "4.12"
+    jacksonCbor = "2.14.0"
+    kotlinxCoroutine="1.6.4"
+    junit = "4.13.2"
     slf4_logger = "1.7.30"
     bounty = "1.65"
-    picocli = "3.6.1"
-    mockitoVersion = "3.2.0"
-    coroutineTest = "1.5.1"
+    picocli = "4.7.0"
+    mockitoVersion = "4.1.0"
+    coroutineTest = "1.6.4"
+    arrow_version = "1.1.2"
 }
 
 task clean(type: Delete) {

@@ -9,7 +9,7 @@ import java.util.regex.Pattern
  * @author Lucien Loiseau on 04/09/20.
  */
 
-class InvalidIpnEid : Exception()
+class InvalidIpnEid : InvalidEid()
 
 const val EID_IPN_IANA_VALUE = 2
 const val IPN_AUTHORITY_FORMAT = "^([0-9]+)\\.([0-9]+)$"

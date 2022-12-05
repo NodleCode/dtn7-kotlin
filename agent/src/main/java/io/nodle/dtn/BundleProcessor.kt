@@ -6,6 +6,7 @@ import io.nodle.dtn.bpv7.administrative.StatusReportReason
 import io.nodle.dtn.bpv7.eid.isNullEid
 import io.nodle.dtn.bpv7.extensions.*
 import io.nodle.dtn.interfaces.*
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 /**
@@ -15,13 +16,21 @@ import org.slf4j.LoggerFactory
  * @author Lucien Loiseau on 15/02/21.
  */
 
-val bpLog = LoggerFactory.getLogger("BundleProcessor")
+val bpLog: Logger = LoggerFactory.getLogger("BundleProcessor")
 
+/* 5.2 */
 suspend fun BundleProtocolAgent.bundleTransmission(desc: BundleDescriptor) {
+    bpLog.debug(
+        "bundle:${desc.ID()} " +
+                "- bundle transmission ${desc.bundle.primaryBlock.source.toASCIIString()} " +
+                "-> ${desc.bundle.primaryBlock.destination.toASCIIString()}"
+    )
+
     /* 5.2 - step 1 */
-    bpLog.debug("bundle:${desc.ID()} - bundle transmission ${desc.bundle.primaryBlock.source.toASCIIString()} -> ${desc.bundle.primaryBlock.destination.toASCIIString()}")
     if (!desc.bundle.primaryBlock.source.isNullEid() && !isLocal(desc.bundle.primaryBlock.source)) {
-        bpLog.debug("bundle:${desc.ID()} - bundle's source is neither dtn:none nor a node's endpoint")
+        bpLog.debug(
+            "bundle:${desc.ID()} - bundle's source is neither dtn:none nor a node's endpoint"
+        )
         bundleDeletion(desc, StatusReportReason.NoInformation)
         return
     }
@@ -61,7 +70,7 @@ suspend fun BundleProtocolAgent.bundleReceive(desc: BundleDescriptor) {
     bpLog.debug("bundle:${desc.ID()} - processing bundle")
     val iterator = desc.bundle.canonicalBlocks.iterator()
     for (block in iterator) {
-        if (bpv7ExtensionManager.isKnown(block.blockType)) {
+        if (isBpv7BlockExtensionKnown(block.blockType)) {
             continue
         }
 
@@ -108,15 +117,15 @@ suspend fun BundleProtocolAgent.bundleReceive(desc: BundleDescriptor) {
     bundleDispatching(desc)
 }
 
-
+/* 5.3 */
 suspend fun BundleProtocolAgent.bundleDispatching(desc: BundleDescriptor) {
     bpLog.debug("bundle:${desc.ID()} - dispatching bundle")
 
     try {
         desc.bundle.checkValid()
-    } catch (e: Exception) {
-        bpLog.debug("bundle:${desc.ID()} - is invalid! ${e.message}")
-        desc.constraints.clear()
+    } catch (e: ValidationException) {
+        bpLog.debug("bundle:${desc.ID()} - is invalid! ${e.status}")
+        bundleDeletion(desc, e.status)
         return
     }
 
@@ -134,9 +143,19 @@ suspend fun BundleProtocolAgent.localDelivery(desc: BundleDescriptor) {
     bpLog.debug("bundle:${desc.ID()} - local delivery")
     desc.constraints.add(BundleConstraint.LocalEndpoint.code)
 
-    if (getRegistrar().localDelivery(desc.bundle)?.deliver(desc.bundle) == true) {
+    /* step 1 TODO reassembly */
+    if (desc.bundle.primaryBlock.isFragment()) {
+        desc.constraints.add(BundleConstraint.ReassemblyPending.code)
+        aduReassembly(desc)
+        return
+    }
+
+    /* step 2 */
+    if (getRegistrar().localDelivery(desc.bundle.primaryBlock.destination)?.deliver(desc.bundle) == true) {
         bpLog.debug("bundle:${desc.ID()} - bundle is delivered")
         desc.tags.add(BundleTag.Delivered.code)
+
+        /* step 3 */
         if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestDelivery)) {
             getAdministrativeAgent().sendStatusReport(
                 this,
@@ -153,39 +172,54 @@ suspend fun BundleProtocolAgent.localDelivery(desc: BundleDescriptor) {
     desc.constraints.clear()
 }
 
+/* 5.9 */
+suspend fun BundleProtocolAgent.aduReassembly(desc: BundleDescriptor) {
+    // TODO
+}
+
 /* 5.4 */
 suspend fun BundleProtocolAgent.bundleForwarding(desc: BundleDescriptor) {
     bpLog.debug("bundle:${desc.ID()} - bundle forwarding")
+
+    /* step 1 */
     desc.constraints.add(BundleConstraint.ForwardPending.code)
     desc.constraints.remove(BundleConstraint.DispatchPending.code)
 
-    // check and increase hop count
-    if (desc.bundle.hasBlockType(BlockType.HopCountBlock)) {
-        val hc = desc.bundle.getHopCountBlockData()
-        hc.inc()
-        bpLog.debug("bundle:${desc.ID()} - contain hop count block")
+    /* step 2 and step 3 managed in dispatching at checkValid() */
 
-        if (hc.isExceeded()) {
-            bpLog.debug("bundle:${desc.ID()} - hop count exceeded")
-            return
+    /* step 4 */
+    // replace previous node block, or insert if none
+    desc.bundle.getPreviousNodeBlockData()
+        ?.apply { bpLog.debug("bundle:${desc.ID()} - updating previous node block") }
+        ?.replaceWith(nodeId())
+        ?: desc.bundle.addBlock(previousNodeBlock(nodeId()))
+
+    // check and increase hop count, if any
+    desc.bundle.getHopCountBlockData()
+        ?.apply { bpLog.debug("bundle:${desc.ID()} - increase hop count block") }
+        ?.inc()
+        ?.apply {
+            if (isExceeded()) {
+                bpLog.debug("bundle:${desc.ID()} - hop count exceed limit")
+                bundleDeletion(desc, StatusReportReason.HopLimitExceeded)
+                return@bundleForwarding
+            }
         }
-    }
 
-    // update age block, if any and check lifetime
-    desc.updateAgeBlock()
-    if (System.currentTimeMillis() > desc.expireAt()) {
+    // update age block, if any
+    desc.bundle.getAgeBlockData()
+        ?.apply { bpLog.debug("bundle:${desc.ID()} - update age block") }
+        ?.apply {
+            age += (dtnTimeNow() - desc.created)
+        }
+
+    if (desc.bundle.isExpired()) {
         bpLog.debug("bundle:${desc.ID()} - is expired")
         bundleDeletion(desc, StatusReportReason.LifetimeExpired)
         return
     }
 
-    if (desc.bundle.hasBlockType(BlockType.PreviousNodeBlock)) {
-        desc.bundle.getPreviousNodeBlockData().replaceWith(nodeId())
-        bpLog.debug("bundle:${desc.ID()} - previous node block updated")
-    } else {
-        desc.bundle.addBlock(previousNodeBlock(nodeId()))
-    }
-
+    /* step 5 */
     if (getRouter().findRoute(desc.bundle)?.sendBundle(desc.bundle) == true) {
         bpLog.debug("bundle:${desc.ID()} - forwarding succeeded")
         if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestForward)) {
@@ -197,7 +231,7 @@ suspend fun BundleProtocolAgent.bundleForwarding(desc: BundleDescriptor) {
             )
         }
 
-        // deleter afterward
+        // delete afterward
         desc.tags.add(BundleTag.Forwarded.code)
         desc.constraints.clear()
     } else {
@@ -211,12 +245,15 @@ suspend fun BundleProtocolAgent.bundleContraindicated(desc: BundleDescriptor) {
     desc.constraints.add(BundleConstraint.Contraindicated.code)
 }
 
+/* 5.10 */
 suspend fun BundleProtocolAgent.bundleDeletion(desc: BundleDescriptor, reason: StatusReportReason) {
     bpLog.debug("bundle:${desc.ID()} - bundle deletion")
 
+    /* step 1 */
     if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestDeletion)) {
         getAdministrativeAgent().sendStatusReport(this, desc, StatusAssertion.DeletedBundle, reason)
     }
 
+    /* step 2 */
     desc.constraints.clear()
 }

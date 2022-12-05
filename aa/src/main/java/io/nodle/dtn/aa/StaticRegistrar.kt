@@ -43,11 +43,10 @@ class StaticRegistrar(val agent: IAgent) : IRegistrar {
         return staticRegistration.map { it.key.checkApiMe() }
     }
 
-    override fun localDelivery(bundle: Bundle): IApplicationAgent? {
+    override fun localDelivery(destination: URI): IApplicationAgent? {
         for ((k, v) in staticRegistration) {
-            if ((k == bundle.primaryBlock.destination)
-                    || k.checkApiMe() == bundle.primaryBlock.destination) {
-                log.debug("application agent found for bundle ${bundle.ID()}")
+            if ((k == destination) || k.checkApiMe() == destination) {
+                log.debug("application agent found for eid $destination")
                 return v
             }
         }

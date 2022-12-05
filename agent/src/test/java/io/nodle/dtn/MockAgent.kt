@@ -19,7 +19,7 @@ abstract class MockAgent(val localId : URI) : BundleProtocolAgent() {
 
     val adm = AdministrativeAgent()
     val reg = object: IRegistrar {
-        override fun localDelivery(bundle: Bundle): IApplicationAgent? {
+        override fun localDelivery(destination: URI): IApplicationAgent {
           return object : IApplicationAgent {
               override fun onRegistrationActive(active: IActiveRegistration) {
                   // ignore

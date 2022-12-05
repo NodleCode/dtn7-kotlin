@@ -20,7 +20,7 @@ afterEvaluate {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     api group: 'org.slf4j', name:'slf4j-api', version: "$slf4_logger"
-
+    
     // crypto
     api group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: "$bounty"
 
