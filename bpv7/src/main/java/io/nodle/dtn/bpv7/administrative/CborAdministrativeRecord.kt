@@ -27,7 +27,7 @@ fun AdministrativeRecord.cborMarshalData(): ByteArray =
 @Throws(CborEncodingException::class)
 fun AdministrativeRecord.cborMarshalData(out: OutputStream) {
     CBORFactory().createGenerator(CloseProtectOutputStream(out)).use {
-        it.writeStartArray(2)
+        it.writeStartArray(null, 2)
         it.writeNumber(recordTypeCode)
         when (data) {
             is StatusReport -> it.cborMarshal(data as StatusReport)
@@ -37,7 +37,7 @@ fun AdministrativeRecord.cborMarshalData(out: OutputStream) {
 }
 
 fun CBORGenerator.cborMarshal(sr: StatusReport) {
-    writeStartArray(sr.cborGetItemCount())
+    writeStartArray(null, sr.cborGetItemCount())
 
     // prepare assertions
     val assertions = mutableListOf<StatusItem>()
@@ -47,7 +47,7 @@ fun CBORGenerator.cborMarshal(sr: StatusReport) {
     assertions.add(3, StatusItem(3, sr.deleted > 0, sr.deleted))
     assertions.addAll(sr.otherAssertions)
 
-    writeStartArray(assertions.size)
+    writeStartArray(null, assertions.size)
     assertions.forEach {
         cborMarshal(it)
     }
@@ -63,7 +63,7 @@ fun CBORGenerator.cborMarshal(sr: StatusReport) {
 }
 
 fun CBORGenerator.cborMarshal(item: StatusItem) {
-    writeStartArray(item.cborGetItemCount())
+    writeStartArray(null, item.cborGetItemCount())
     writeBoolean(item.asserted)
     if (item.asserted) {
         writeNumber(item.timestamp)

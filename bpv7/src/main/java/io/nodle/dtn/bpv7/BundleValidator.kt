@@ -19,10 +19,10 @@ fun Bundle.isValid(): Boolean = try {
 
 @Throws(ValidationException::class)
 fun Bundle.checkValid() {
-    primaryBlock.checkValidPrimaryBlock(this)
+    checkValidPrimaryBlock()
 
     for (block in canonicalBlocks) {
-        block.checkValidCanonicalBlock(this)
+        checkValidCanonicalBlock(block)
     }
 
     if (!primaryBlock.hasCRC() && !isSignedWithEd25519(0)) {
@@ -47,20 +47,20 @@ fun Bundle.checkValid() {
 
 
 @Throws(ValidationException::class)
-fun PrimaryBlock.checkValidPrimaryBlock(bundle: Bundle) {
+fun Bundle.checkValidPrimaryBlock() {
     if (isFlagSet(BundleV7Flags.IsFragment) && isFlagSet(BundleV7Flags.MustNotFragment)) {
         throw ValidationException("bundle:${ID()} - primary: bundle is a fragment but must_no_fragment flag is set")
     }
 
     try {
-        source.checkValidEid()
-        reportTo.checkValidEid()
+        primaryBlock.source.checkValidEid()
+        primaryBlock.reportTo.checkValidEid()
     } catch (e: InvalidEid) {
         throw ValidationException("bundle:${ID()} - primary: eid unintelligible")
     }
 
     try {
-        destination.checkValidEid()
+        primaryBlock.destination.checkValidEid()
     } catch (e: InvalidEid) {
         throw ValidationException(
             "bundle:${ID()} - primary: destination eid unintelligible",
@@ -68,7 +68,7 @@ fun PrimaryBlock.checkValidPrimaryBlock(bundle: Bundle) {
         )
     }
 
-    if (source.isNullEid() && !(isFlagSet(BundleV7Flags.MustNotFragment)
+    if (primaryBlock.source.isNullEid() && !(isFlagSet(BundleV7Flags.MustNotFragment)
                 && !isFlagSet(BundleV7Flags.StatusRequestReception)
                 && !isFlagSet(BundleV7Flags.StatusRequestForward)
                 && !isFlagSet(BundleV7Flags.StatusRequestDelivery)
@@ -107,11 +107,11 @@ fun Bundle.isExpired(): Boolean =
     }
 
 @Throws(ValidationException::class)
-fun CanonicalBlock.checkValidCanonicalBlock(bundle: Bundle) {
-    if (blockNumber == 0) {
-        throw ValidationException("bundle:${bundle.ID()} - canonical: block number 0 forbidden for non-primary block")
+fun Bundle.checkValidCanonicalBlock(block: CanonicalBlock) {
+    if (block.blockNumber == 0) {
+        throw ValidationException("bundle:${ID()} - canonical: block number 0 forbidden for non-primary block")
     }
-    when (blockType) {
-        BlockType.BlockIntegrityBlock.code -> checkValidBIB(bundle)
+    when (block.blockType) {
+        BlockType.BlockIntegrityBlock.code -> block.checkValidBIB(this)
     }
 }

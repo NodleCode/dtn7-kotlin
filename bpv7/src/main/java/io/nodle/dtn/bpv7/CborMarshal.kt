@@ -60,14 +60,14 @@ fun PrimaryBlock.cborMarshal(out: OutputStream) {
     // multiplexing the output stream to compute crc at same time
     val dualOut = DualOutputStream(crc, out)
     CBORFactory().createGenerator(dualOut).use {
-        it.writeStartArray(cborGetItemCount())
+        it.writeStartArray(null, cborGetItemCount())
         it.writeNumber(version)
         it.writeNumber(procV7Flags)
         it.writeNumber(crcType.ordinal)
         it.cborMarshal(destination)
         it.cborMarshal(source)
         it.cborMarshal(reportTo)
-        it.writeStartArray(2)
+        it.writeStartArray(null, 2)
         it.writeNumber(creationTimestamp)
         it.writeNumber(sequenceNumber)
         it.writeEndArray()
@@ -130,7 +130,7 @@ fun CanonicalBlock.cborMarshal(out: OutputStream) {
     // multiplexing the output stream to compute crc at same time
     val dualOut = DualOutputStream(crc, out)
     CBORFactory().createGenerator(dualOut).use {
-        it.writeStartArray(cborGetItemCount())
+        it.writeStartArray(null, cborGetItemCount())
         it.writeNumber(blockType)
         it.writeNumber(blockNumber)
         it.writeNumber(procV7flags)
@@ -187,21 +187,21 @@ fun CanonicalBlock.cborGetItemCount(): Int {
 @Throws(CborEncodingException::class)
 fun CBORGenerator.cborMarshal(uri: URI) {
     if (uri.isIpnEid()) {
-        writeStartArray(2)
+        writeStartArray(null, 2)
         writeNumber(EID_IPN_IANA_VALUE)
         writeArray(intArrayOf(uri.getNodeNumberUnsafe(), uri.getServiceNumberUnsafe()), 0, 2)
         writeEndArray()
         return
     }
     if (uri.isNullEid()) {
-        writeStartArray(2)
+        writeStartArray(null, 2)
         writeNumber(EID_DTN_IANA_VALUE)
         writeNumber(0)
         writeEndArray()
         return
     }
     if (uri.isDtnEid()) {
-        writeStartArray(2)
+        writeStartArray(null, 2)
         writeNumber(EID_DTN_IANA_VALUE)
         writeString(uri.schemeSpecificPart)
         writeEndArray()

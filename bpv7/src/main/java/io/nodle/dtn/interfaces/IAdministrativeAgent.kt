@@ -2,17 +2,19 @@ package io.nodle.dtn.interfaces
 
 import io.nodle.dtn.bpv7.administrative.StatusAssertion
 import io.nodle.dtn.bpv7.administrative.StatusReportReason
-import io.nodle.dtn.interfaces.BundleDescriptor
+import java.net.URI
 
 /**
  * @author Lucien Loiseau on 18/02/21.
  */
 interface IAdministrativeAgent {
 
+    val administrativeEndpoint : URI
+
     suspend fun sendStatusReport(
-            core: IAgent,
-            desc: BundleDescriptor,
-            assertion: StatusAssertion,
-            reason: StatusReportReason)
+        bpa: IBundleProtocolAgent,
+        desc: BundleDescriptor,
+        assertion: StatusAssertion,
+        reason: StatusReportReason)
 
 }

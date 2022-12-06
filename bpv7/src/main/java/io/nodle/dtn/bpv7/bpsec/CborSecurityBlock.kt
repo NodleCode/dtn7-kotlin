@@ -17,8 +17,8 @@ import java.io.OutputStream
 @Throws(CborEncodingException::class)
 fun AbstractSecurityBlockData.cborMarshalData(out: OutputStream) {
     CBORFactory().createGenerator(CloseProtectOutputStream(out)).use {
-        it.writeStartArray(cborGetItemCount())
-        it.writeStartArray(securityTargets.size)
+        it.writeStartArray(null, cborGetItemCount())
+        it.writeStartArray(null, securityTargets.size)
         for (target in securityTargets) {
             it.writeNumber(target)
         }
@@ -35,7 +35,7 @@ fun AbstractSecurityBlockData.cborMarshalData(out: OutputStream) {
             }
         }
 
-        it.writeStartArray(securityResults.size)
+        it.writeStartArray(null, securityResults.size)
         for (targetResult in securityResults) {
             when (securityContext) {
                 SecurityContext.Ed25519BlockSignature.id ->
@@ -49,15 +49,15 @@ fun AbstractSecurityBlockData.cborMarshalData(out: OutputStream) {
 }
 
 fun CBORGenerator.cborMarshal(params: Ed25519SecurityParameter) {
-    writeStartArray(2)
+    writeStartArray(null, 2)
 
     // pubkey
-    writeStartArray(2)
+    writeStartArray(null, 2)
     writeNumber(0)
     writeBinary(params.ed25519PublicKey.encoded)
     writeEndArray()
     // timestamp
-    writeStartArray(2)
+    writeStartArray(null, 2)
     writeNumber(1)
     writeNumber(params.timestamp)
     writeEndArray()
@@ -66,10 +66,10 @@ fun CBORGenerator.cborMarshal(params: Ed25519SecurityParameter) {
 }
 
 fun CBORGenerator.cborMarshal(result: Ed25519SecurityResult) {
-    writeStartArray(1)
+    writeStartArray(null, 1)
 
     // the actual signature
-    writeStartArray(2)
+    writeStartArray(null, 2)
     writeNumber(0)
     writeBinary(result.signature.hexToBa())
     writeEndArray()

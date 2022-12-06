@@ -29,4 +29,4 @@ fun payloadBlock(buffer: ByteArray) : CanonicalBlock = CanonicalBlock(
 
 fun Bundle.getPayloadBlockData() = getPayloadBlock().data as PayloadBlockData
 
-fun Bundle.getPayloadSize() = getPayloadBlockData().buffer.size?.toLong() ?: 0L
+fun Bundle.getPayloadSize() = getPayloadBlockData().buffer.size.toLong()

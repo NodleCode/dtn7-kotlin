@@ -1,0 +1,30 @@
+CREATE TABLE IF NOT EXISTS UserKeyPair(private_key TEXT NOT NULL,
+public_key TEXT NOT NULL,
+timestamp_in_sec INTEGER NOT NULL,
+expiry_after_sec INTEGER NOT NULL,
+row_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL);
+
+CREATE UNIQUE INDEX IF NOT EXISTS index_UserKeyPair_public_key ON UserKeyPair(public_key);
+
+CREATE INDEX IF NOT EXISTS index_UserKeyPair_row_id ON UserKeyPair(row_id);
+
+insert:
+INSERT OR FAIL INTO UserKeyPair(private_key, public_key, timestamp_in_sec, expiry_after_sec) VALUES(?, ?, ?, ?);
+
+last_insert_rowid:
+SELECT last_insert_rowid();
+
+getAll:
+SELECT * FROM UserKeyPair ORDER BY timestamp_in_sec DESC;
+
+getLast:
+SELECT * FROM UserKeyPair ORDER BY timestamp_in_sec DESC LIMIT 1;
+
+deleteAll:
+DELETE FROM UserKeyPair;
+
+getPairAt:
+SELECT * FROM UserKeyPair WHERE timestamp_in_sec >= :time AND timestamp_in_sec <= :time;
+
+getExpiringKey:
+SELECT * FROM UserKeyPair WHERE expiry_after_sec <= :time AND expiry_after_sec >= -1 ORDER BY timestamp_in_sec DESC LIMIT 1;

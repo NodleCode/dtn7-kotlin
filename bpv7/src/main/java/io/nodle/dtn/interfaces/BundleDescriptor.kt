@@ -13,13 +13,11 @@ enum class BundleConstraint(val code: String) {
     ForwardPending("forward_pending"),
     ReassemblyPending("reassembly_pending"),
     Contraindicated("contraindicated"),
-    LocalEndpoint("local_endpoint"),
 }
 
 enum class BundleTag(val code: String) {
     OriginCLA("origin_cla"),
     OriginLocal("origin_local"),
-    OriginStorage("origin_storage"),
     Delivered("delivered"),
     Forwarded("forwarded")
 }
@@ -32,6 +30,7 @@ data class BundleDescriptor(
 )
 
 fun BundleDescriptor.ID() = bundle.ID()
+
 fun BundleDescriptor.fragmentedID() = bundle.fragmentedID()
 
 fun BundleDescriptor.expireAt() = bundle.expireAt()

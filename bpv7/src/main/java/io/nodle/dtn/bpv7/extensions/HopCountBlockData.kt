@@ -39,7 +39,7 @@ fun Bundle.getHopCountBlockData() = (canonicalBlocks
 @Throws(CborEncodingException::class)
 fun HopCountBlockData.cborMarshalData(out: OutputStream) {
     CBORFactory().createGenerator(CloseProtectOutputStream(out)).use {
-        it.writeStartArray(2)
+        it.writeStartArray(null, 2)
         it.writeNumber(limit)
         it.writeNumber(count)
         it.writeEndArray()

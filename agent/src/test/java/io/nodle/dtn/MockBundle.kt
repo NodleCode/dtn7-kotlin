@@ -10,9 +10,9 @@ import java.net.URI
  * @author Lucien Loiseau on 18/02/21.
  */
 public object MockBundle {
-    val localNodeId = URI.create("dtn://test/")
-    val remoteNodeId = URI.create("dtn://nodle/dtn-router")
-    val keyPair = Ed25519Util.generateEd25519KeyPair()
+    private val localNodeId: URI = URI.create("dtn://test/test1")
+    private val remoteNodeId: URI = URI.create("dtn://nodle/dtn-router")
+    private val keyPair = Ed25519Util.generateEd25519KeyPair()
 
     val inBundle1 = PrimaryBlock()
             .destination(localNodeId)

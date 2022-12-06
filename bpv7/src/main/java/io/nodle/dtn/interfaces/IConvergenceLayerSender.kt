@@ -8,7 +8,7 @@ import java.net.URI
  */
 interface IConvergenceLayerSender {
 
-    suspend fun sendBundles(bundle : List<Bundle>) : Boolean
+    suspend fun sendBundles(bundles : List<Bundle>) : Boolean
 
     suspend fun sendBundle(bundle : Bundle) : Boolean
 

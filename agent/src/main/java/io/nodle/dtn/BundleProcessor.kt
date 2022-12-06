@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory
 val bpLog: Logger = LoggerFactory.getLogger("BundleProcessor")
 
 /* 5.2 */
-suspend fun BundleProtocolAgent.bundleTransmission(desc: BundleDescriptor) {
+suspend fun IBundleNode.bundleTransmission(desc: BundleDescriptor) {
     bpLog.debug(
         "bundle:${desc.ID()} " +
                 "- bundle transmission ${desc.bundle.primaryBlock.source.toASCIIString()} " +
@@ -27,7 +27,7 @@ suspend fun BundleProtocolAgent.bundleTransmission(desc: BundleDescriptor) {
     )
 
     /* 5.2 - step 1 */
-    if (!desc.bundle.primaryBlock.source.isNullEid() && !isLocal(desc.bundle.primaryBlock.source)) {
+    if (!desc.bundle.primaryBlock.source.isNullEid() && !applicationAgent.isLocal(desc.bundle.primaryBlock.source)) {
         bpLog.debug(
             "bundle:${desc.ID()} - bundle's source is neither dtn:none nor a node's endpoint"
         )
@@ -41,7 +41,7 @@ suspend fun BundleProtocolAgent.bundleTransmission(desc: BundleDescriptor) {
 }
 
 /* 5.6 */
-suspend fun BundleProtocolAgent.bundleReceive(desc: BundleDescriptor) {
+suspend fun IBundleNode.bundleReceive(desc: BundleDescriptor) {
     bpLog.debug("bundle:${desc.ID()} - bundle receive ${desc.bundle.primaryBlock.source.toASCIIString()} -> ${desc.bundle.primaryBlock.destination.toASCIIString()}")
 
     if (desc.constraints.isNotEmpty()) {
@@ -55,8 +55,8 @@ suspend fun BundleProtocolAgent.bundleReceive(desc: BundleDescriptor) {
     /* 5.6 - step 2 */
     if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestReception)) {
         bpLog.debug("bundle:${desc.ID()} - request reporting on reception")
-        getAdministrativeAgent().sendStatusReport(
-            this,
+        applicationAgent.administrativeAgent.sendStatusReport(
+            this.bundleProtocolAgent,
             desc,
             StatusAssertion.ReceivedBundle,
             StatusReportReason.NoInformation
@@ -85,8 +85,8 @@ suspend fun BundleProtocolAgent.bundleReceive(desc: BundleDescriptor) {
                         "block: number=${block.blockNumber}, " +
                         "type=${block.blockType}  - unprocessed block requested reporting "
             )
-            getAdministrativeAgent().sendStatusReport(
-                this,
+            applicationAgent.administrativeAgent.sendStatusReport(
+                this.bundleProtocolAgent,
                 desc,
                 StatusAssertion.ReceivedBundle,
                 StatusReportReason.BlockUnsupported
@@ -118,7 +118,7 @@ suspend fun BundleProtocolAgent.bundleReceive(desc: BundleDescriptor) {
 }
 
 /* 5.3 */
-suspend fun BundleProtocolAgent.bundleDispatching(desc: BundleDescriptor) {
+suspend fun IBundleNode.bundleDispatching(desc: BundleDescriptor) {
     bpLog.debug("bundle:${desc.ID()} - dispatching bundle")
 
     try {
@@ -129,7 +129,7 @@ suspend fun BundleProtocolAgent.bundleDispatching(desc: BundleDescriptor) {
         return
     }
 
-    if (isLocal(desc.bundle.primaryBlock.destination)) {
+    if (applicationAgent.isLocal(desc.bundle.primaryBlock.destination)) {
         /* 5.3 - step 1 */
         localDelivery(desc)
     } else {
@@ -139,46 +139,67 @@ suspend fun BundleProtocolAgent.bundleDispatching(desc: BundleDescriptor) {
 }
 
 /* 5.7 */
-suspend fun BundleProtocolAgent.localDelivery(desc: BundleDescriptor) {
+suspend fun IBundleNode.localDelivery(desc: BundleDescriptor) {
     bpLog.debug("bundle:${desc.ID()} - local delivery")
-    desc.constraints.add(BundleConstraint.LocalEndpoint.code)
 
     /* step 1 TODO reassembly */
     if (desc.bundle.primaryBlock.isFragment()) {
         desc.constraints.add(BundleConstraint.ReassemblyPending.code)
-        aduReassembly(desc)
+        aduReassembly(desc)?.let{
+            localDelivery(it)
+        }
         return
     }
 
     /* step 2 */
-    if (getRegistrar().localDelivery(desc.bundle.primaryBlock.destination)?.deliver(desc.bundle) == true) {
-        bpLog.debug("bundle:${desc.ID()} - bundle is delivered")
-        desc.tags.add(BundleTag.Delivered.code)
+    when (applicationAgent.receiveForLocalDelivery(desc.bundle)) {
+        DeliveryStatus.DeliverySuccessful -> {
+            bpLog.debug("bundle:${desc.ID()} - bundle is delivered")
+            desc.tags.add(BundleTag.Delivered.code)
 
-        /* step 3 */
-        if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestDelivery)) {
-            getAdministrativeAgent().sendStatusReport(
-                this,
-                desc,
-                StatusAssertion.DeliveredBundle,
-                StatusReportReason.NoInformation
-            )
+            /* step 3 */
+            if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestDelivery)) {
+                applicationAgent.administrativeAgent.sendStatusReport(
+                    this.bundleProtocolAgent,
+                    desc,
+                    StatusAssertion.DeliveredBundle,
+                    StatusReportReason.NoInformation
+                )
+            }
         }
-    } else {
-        bpLog.debug("bundle:${desc.ID()} - delivery unsuccessful")
-    }
 
-    // delete the bundle whether it was delivered or not
-    desc.constraints.clear()
+        DeliveryStatus.DeliveryTemporaryUnavailable -> {
+            bpLog.debug("bundle:${desc.ID()} - bundle cannot be delivered right now")
+            /* defer */
+        }
+
+        DeliveryStatus.EndpointNotFound, DeliveryStatus.DeliveryRejected -> {
+            bpLog.debug("bundle:${desc.ID()} - delivery unsuccessful")
+            desc.constraints.clear()
+        }
+    }
 }
 
 /* 5.9 */
-suspend fun BundleProtocolAgent.aduReassembly(desc: BundleDescriptor) {
-    // TODO
+suspend fun IBundleNode.aduReassembly(desc: BundleDescriptor): BundleDescriptor? {
+    val fid = desc.fragmentedID()
+    bundleStorage.insert(desc)
+
+    if (bundleStorage.isBundleWhole(fid)) {
+        bpLog.debug("fragments:${desc.fragmentedID()} - all fragments have been recovered")
+        return bundleStorage.getBundleFromFragments(fid)?.apply {
+            bpLog.debug("bundle:${desc.ID()} - bundle has been reassembled")
+            desc.constraints.clear()
+            bundleStorage.deleteAllFragments(fid)
+        }
+    } else {
+        bpLog.debug("fragments:${desc.fragmentedID()} - fragments missing")
+    }
+    return null
 }
 
 /* 5.4 */
-suspend fun BundleProtocolAgent.bundleForwarding(desc: BundleDescriptor) {
+suspend fun IBundleNode.bundleForwarding(desc: BundleDescriptor) {
     bpLog.debug("bundle:${desc.ID()} - bundle forwarding")
 
     /* step 1 */
@@ -191,8 +212,8 @@ suspend fun BundleProtocolAgent.bundleForwarding(desc: BundleDescriptor) {
     // replace previous node block, or insert if none
     desc.bundle.getPreviousNodeBlockData()
         ?.apply { bpLog.debug("bundle:${desc.ID()} - updating previous node block") }
-        ?.replaceWith(nodeId())
-        ?: desc.bundle.addBlock(previousNodeBlock(nodeId()))
+        ?.replaceWith(applicationAgent.nodeId())
+        ?: desc.bundle.addBlock(previousNodeBlock(applicationAgent.nodeId()))
 
     // check and increase hop count, if any
     desc.bundle.getHopCountBlockData()
@@ -220,11 +241,11 @@ suspend fun BundleProtocolAgent.bundleForwarding(desc: BundleDescriptor) {
     }
 
     /* step 5 */
-    if (getRouter().findRoute(desc.bundle)?.sendBundle(desc.bundle) == true) {
+    if (router.findRoute(desc.bundle)?.sendBundle(desc.bundle) == true) {
         bpLog.debug("bundle:${desc.ID()} - forwarding succeeded")
         if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestForward)) {
-            getAdministrativeAgent().sendStatusReport(
-                this,
+            applicationAgent.administrativeAgent.sendStatusReport(
+                this.bundleProtocolAgent,
                 desc,
                 StatusAssertion.ForwardedBundle,
                 StatusReportReason.NoInformation
@@ -240,18 +261,23 @@ suspend fun BundleProtocolAgent.bundleForwarding(desc: BundleDescriptor) {
     }
 }
 
-suspend fun BundleProtocolAgent.bundleContraindicated(desc: BundleDescriptor) {
+suspend fun IBundleNode.bundleContraindicated(desc: BundleDescriptor) {
     bpLog.debug("bundle:${desc.ID()} - bundle marked for contraindication")
     desc.constraints.add(BundleConstraint.Contraindicated.code)
 }
 
 /* 5.10 */
-suspend fun BundleProtocolAgent.bundleDeletion(desc: BundleDescriptor, reason: StatusReportReason) {
+suspend fun IBundleNode.bundleDeletion(desc: BundleDescriptor, reason: StatusReportReason) {
     bpLog.debug("bundle:${desc.ID()} - bundle deletion")
 
     /* step 1 */
     if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestDeletion)) {
-        getAdministrativeAgent().sendStatusReport(this, desc, StatusAssertion.DeletedBundle, reason)
+        applicationAgent.administrativeAgent.sendStatusReport(
+            this.bundleProtocolAgent,
+            desc,
+            StatusAssertion.DeletedBundle,
+            reason
+        )
     }
 
     /* step 2 */

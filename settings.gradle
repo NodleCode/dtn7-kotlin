@@ -4,5 +4,7 @@ include ':cla'
 include ':agent'
 include ':linux-storage'
 include ':bputil'
+
+project(":linux-storage").projectDir = file("linux/storage")
 project(":bputil").projectDir = file("tools/bputil")
 

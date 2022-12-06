@@ -38,7 +38,7 @@ fun Bundle.getPayloadBlock() = getBlockType(BlockType.PayloadBlock.code)!!
 
 fun Bundle.getStatusReport() {
     if (primaryBlock.isAdministiveRecord()) {
-        getPayloadBlockData()?.buffer?.run {
+        getPayloadBlockData().buffer.run {
             cborUnmarshalAdmnistrativeRecord(this).data as StatusReport
         }
     }
