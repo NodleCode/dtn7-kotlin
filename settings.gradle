@@ -2,6 +2,7 @@ include ':bpv7'
 include ':aa'
 include ':cla'
 include ':agent'
+include ':linux-storage'
 include ':bputil'
 project(":bputil").projectDir = file("tools/bputil")
 

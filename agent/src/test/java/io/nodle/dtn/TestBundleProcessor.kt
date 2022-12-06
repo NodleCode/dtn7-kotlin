@@ -1,5 +1,6 @@
 package io.nodle.dtn
 
+import io.nodle.dtn.interfaces.IBundleStorage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runBlockingTest

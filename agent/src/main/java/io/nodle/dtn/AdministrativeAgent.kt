@@ -42,7 +42,7 @@ class AdministrativeAgent : IAdministrativeAgent {
                 .cborMarshalData()
 
         val adm = PrimaryBlock()
-                .procV7Flags(BundleV7Flags.AdministrativeRecordPayload)
+                .setProcV7Flags(BundleV7Flags.AdministrativeRecordPayload)
                 .source(core.nodeId())
                 .destination(desc.bundle.primaryBlock.reportTo)
                 .creationTimestamp(System.currentTimeMillis())

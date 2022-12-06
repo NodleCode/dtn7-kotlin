@@ -17,4 +17,6 @@ fun Long.isFlagSet(offset: Int) = ((0b1L shl offset) and this) > 0
 
 fun Long.setFlag(offset: Int) = this or (0b1L shl offset)
 
+fun Long.unsetFlag(offset: Int) = this and (0b1L shl offset).inv()
+
 fun Long.unsetBFlag(offset: Int) = this and (0b1L shl offset).inv()

@@ -23,11 +23,10 @@ fun cborUnmarshalBundle(buffer: ByteArray) =
         cborUnmarshalBundle(ByteArrayInputStream(buffer))
 
 @Throws(CborParsingException::class)
-fun cborUnmarshalBundle(input: InputStream): Bundle {
-    return CBORFactory()
+fun cborUnmarshalBundle(input: InputStream) =
+    CBORFactory()
             .createParser(input)
             .readBundle()
-}
 
 @Throws(CborParsingException::class)
 fun CBORParser.readBundle(): Bundle {
@@ -43,6 +42,12 @@ fun CBORParser.readBundle(): Bundle {
                 }
             }
 }
+
+@Throws(CborParsingException::class)
+fun cborUnmarshalPrimaryBlock(buffer: ByteArray) =
+    CBORFactory()
+        .createParser(buffer)
+        .readPrimaryBlock()
 
 @Throws(CborParsingException::class)
 fun CBORParser.readPrimaryBlock(): PrimaryBlock {
@@ -74,6 +79,12 @@ fun CBORParser.readPrimaryBlock(): PrimaryBlock {
         }
     }
 }
+
+@Throws(CborParsingException::class)
+fun cborUnmarshalCanonicalBlock(buffer: ByteArray) =
+    CBORFactory()
+        .createParser(buffer)
+        .readCanonicalBlock()
 
 @Throws(CborParsingException::class)
 fun CBORParser.readCanonicalBlock(prefetch: Boolean): CanonicalBlock {

@@ -33,3 +33,5 @@ data class BundleDescriptor(
 
 fun BundleDescriptor.ID() = bundle.ID()
 fun BundleDescriptor.fragmentedID() = bundle.fragmentedID()
+
+fun BundleDescriptor.expireAt() = bundle.expireAt()

@@ -42,6 +42,14 @@ fun Bundle.cborMarshal(out: OutputStream) {
 }
 
 @Throws(CborEncodingException::class)
+fun PrimaryBlock.cborMarshal(): ByteArray {
+    return ByteArrayOutputStream().use {
+        this.cborMarshal(it)
+        it.toByteArray()
+    }
+}
+
+@Throws(CborEncodingException::class)
 fun PrimaryBlock.cborMarshal(out: OutputStream) {
     val crc = when (crcType) {
         CRCType.NoCRC -> NullCRC()
@@ -101,6 +109,14 @@ fun PrimaryBlock.cborGetItemCount(): Int {
         length += 2
     }
     return length
+}
+
+@Throws(CborEncodingException::class)
+fun CanonicalBlock.cborMarshal(): ByteArray {
+    return ByteArrayOutputStream().use {
+        this.cborMarshal(it)
+        it.toByteArray()
+    }
 }
 
 @Throws(CborEncodingException::class)

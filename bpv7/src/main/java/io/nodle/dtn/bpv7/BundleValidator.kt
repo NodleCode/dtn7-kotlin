@@ -17,6 +17,7 @@ fun Bundle.isValid(): Boolean = try {
     false
 }
 
+@Throws(ValidationException::class)
 fun Bundle.checkValid() {
     primaryBlock.checkValidPrimaryBlock(this)
 
@@ -90,6 +91,13 @@ fun Bundle.checkLifetimeExceeded() {
         )
     }
 }
+
+fun Bundle.expireAt(): DtnTime =
+    if (this.primaryBlock.creationTimestamp == 0L) {
+        (getAgeBlockData()!!.age - this.primaryBlock.lifetime) + dtnTimeNow()
+    } else {
+        (this.primaryBlock.creationTimestamp + this.primaryBlock.lifetime)
+    }
 
 fun Bundle.isExpired(): Boolean =
     if (this.primaryBlock.creationTimestamp == 0L) {

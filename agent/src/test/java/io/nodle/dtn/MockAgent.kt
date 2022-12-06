@@ -1,6 +1,8 @@
 package io.nodle.dtn
 
 import io.nodle.dtn.bpv7.Bundle
+import io.nodle.dtn.bpv7.BundleID
+import io.nodle.dtn.bpv7.FragmentID
 import io.nodle.dtn.bpv7.ID
 import io.nodle.dtn.interfaces.*
 import org.junit.Before
@@ -68,6 +70,52 @@ abstract class MockAgent(val localId : URI) : BundleProtocolAgent() {
         }
     }
 
+    val sto = object: IBundleStorage {
+        override fun size(): Int {
+            TODO("Not yet implemented")
+        }
+
+        override fun gc(now: Long) {
+            TODO("Not yet implemented")
+        }
+
+        override fun getAllBundleIds(): List<BundleID> {
+            TODO("Not yet implemented")
+        }
+
+        override fun get(bid: BundleID): BundleDescriptor? {
+            TODO("Not yet implemented")
+        }
+
+        override fun exists(bid: BundleID): Boolean {
+            TODO("Not yet implemented")
+        }
+
+        override fun insert(bundle: BundleDescriptor): Long {
+            TODO("Not yet implemented")
+        }
+
+        override fun delete(bid: BundleID) {
+            TODO("Not yet implemented")
+        }
+
+        override fun deleteAll() {
+            TODO("Not yet implemented")
+        }
+
+        override fun getAllFragments(fragmentId: FragmentID): List<FragmentID> {
+            TODO("Not yet implemented")
+        }
+
+        override fun isBundleWhole(fragmentId: FragmentID) {
+            TODO("Not yet implemented")
+        }
+
+        override fun getBundleFromFragments(fragmentID: FragmentID): BundleDescriptor? {
+            TODO("Not yet implemented")
+        }
+    }
+
     override fun nodeId(): URI {
         return URI.create("dtn://test/")
     }
@@ -91,4 +139,6 @@ abstract class MockAgent(val localId : URI) : BundleProtocolAgent() {
     override fun getRegistrar()  = reg
 
     override fun getRouter() = rou
+
+    override fun getBundleStorage() = sto
 }

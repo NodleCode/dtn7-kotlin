@@ -58,7 +58,7 @@ class StaticRegistrar(val agent: IAgent) : IRegistrar {
             if (authority == "api:me") {
                 return swapApiMe(agent.nodeId())
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
         }
         return this
     }

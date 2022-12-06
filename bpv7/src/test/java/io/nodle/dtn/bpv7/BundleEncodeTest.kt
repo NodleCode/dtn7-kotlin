@@ -6,7 +6,6 @@ import io.nodle.dtn.bpv7.bpsec.addEd25519Signature
 import io.nodle.dtn.bpv7.extensions.ageBlock
 import io.nodle.dtn.crypto.Ed25519Util
 import io.nodle.dtn.utils.hexToBa
-import io.nodle.dtn.utils.setFlag
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters
 import org.junit.Assert
 import org.junit.Test
@@ -150,7 +149,7 @@ class BundleEncodeTest {
         val bundle = PrimaryBlock()
                 .destination(URI.create("dtn://nodle/dtn-router"))
                 .source(URI.create("dtn://test-sdk/"))
-                .procV7Flags(BundleV7Flags.AdministrativeRecordPayload)
+                .setProcV7Flags(BundleV7Flags.AdministrativeRecordPayload)
                 .makeBundle()
                 .addBlock(payloadBlock(admRecord.cborMarshalData()).crcType(CRCType.CRC32))
         try {

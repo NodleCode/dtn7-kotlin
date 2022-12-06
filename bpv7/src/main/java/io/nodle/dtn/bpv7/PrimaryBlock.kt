@@ -4,6 +4,7 @@ import io.nodle.dtn.bpv7.eid.nullDtnEid
 import io.nodle.dtn.utils.LastBufferOutputStream
 import io.nodle.dtn.utils.isFlagSet
 import io.nodle.dtn.utils.setFlag
+import io.nodle.dtn.utils.unsetFlag
 import java.net.URI
 import java.util.*
 import kotlin.collections.ArrayList
@@ -31,8 +32,14 @@ fun PrimaryBlock.version(v : Int) : PrimaryBlock {
     return this
 }
 
-fun PrimaryBlock.procV7Flags(flags : BundleV7Flags) : PrimaryBlock {
+fun PrimaryBlock.setProcV7Flags(flags : BundleV7Flags) : PrimaryBlock {
     this.procV7Flags = this.procV7Flags.setFlag(flags.offset)
+    return this
+}
+
+
+fun PrimaryBlock.unsetProcV7Flags(flags : BundleV7Flags) : PrimaryBlock {
+    this.procV7Flags = this.procV7Flags.unsetFlag(flags.offset)
     return this
 }
 
@@ -94,8 +101,11 @@ fun PrimaryBlock.checkCRC(crc : ByteArray) : Boolean {
     return buf.last().contentEquals(crc)
 }
 
-// ID is unique accross all bundle
-fun PrimaryBlock.ID(): String {
+// ID is unique across all bundle
+typealias BundleID = String
+typealias FragmentID = String
+
+fun PrimaryBlock.ID(): BundleID {
     return UUID.nameUUIDFromBytes((source.toASCIIString() +
             creationTimestamp +
             sequenceNumber +
@@ -106,7 +116,7 @@ fun PrimaryBlock.ID(): String {
 }
 
 // fragmentedID is shared by all fragment of the same bundle
-fun PrimaryBlock.fragmentedID(): String {
+fun PrimaryBlock.fragmentedID(): FragmentID {
     return UUID.nameUUIDFromBytes((source.toASCIIString() +
             creationTimestamp +
             sequenceNumber).toByteArray()).toString()

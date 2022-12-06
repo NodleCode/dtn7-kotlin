@@ -36,6 +36,11 @@ interface IAgent {
     fun getRouter() : IRouter
 
     /**
+     * get the storage layer associated with this bundle protocol agent
+     */
+    fun getBundleStorage() : IBundleStorage
+
+    /**
      * this is the main entry point for incoming bundle.
      * @param bundle: bundle to process for reception
      */

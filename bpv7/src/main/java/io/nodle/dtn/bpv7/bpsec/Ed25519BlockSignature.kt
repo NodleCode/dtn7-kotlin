@@ -166,7 +166,6 @@ fun AbstractSecurityBlockData.checkValidEd25519Signatures(bundle: Bundle) {
         if (!signer.done(result.signature.hexToBa())) {
             throw ValidationException("asb-ed25519: signature verification failed on block target $target")
         }
-        println("valid signature on block $target")
     }
 }
 
