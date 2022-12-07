@@ -36,16 +36,16 @@ class BundleProtocolAgent(private val core: BpNode) : IBundleProtocolAgent {
             desc.constraints.contains(BundleConstraint.Contraindicated.code)) {
             // store
             bpaLog.debug("bundle:${desc.ID()} - forward later, put in storage")
-            core.bundleStorage.insert(desc)
+            core.store.bundleStore.insert(desc)
         } else {
             // delete
             bpaLog.debug("bundle:${desc.ID()} - forget this bundle")
-            core.bundleStorage.delete(desc.ID())
+            core.store.bundleStore.delete(desc.ID())
         }
     }
 
     private suspend fun checkDuplicate(bundle: Bundle, func: suspend (Bundle) -> Any) {
-        if (!core.bundleStorage.exists(bundle.ID())) {
+        if (!core.store.bundleStore.exists(bundle.ID())) {
             func(bundle)
         } else {
             bpLog.debug("bundle:${bundle.ID()} - duplicate bundle, ignore")

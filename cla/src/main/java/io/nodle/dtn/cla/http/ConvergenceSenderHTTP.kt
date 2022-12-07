@@ -16,7 +16,7 @@ import java.net.URL
  * @author Lucien Loiseau on 17/02/21.
  */
 open class ConvergenceSenderHTTP(
-    val agent: IBundleNode,
+    private val agent: IBundleNode,
     var url: URI
 ) : IConvergenceLayerSender {
 
@@ -25,7 +25,7 @@ open class ConvergenceSenderHTTP(
     override fun getPeerEndpointId(): URI {
         return url
     }
-
+    
     override suspend fun sendBundle(bundle: Bundle): Boolean = sendBundles(listOf(bundle))
 
     override suspend fun sendBundles(bundles: List<Bundle>): Boolean {
@@ -71,7 +71,7 @@ open class ConvergenceSenderHTTP(
         try {
             val parser = CBORFactory().createParser(inputStream)
             while (!parser.isClosed) {
-                agent.bundleProtocolAgent.receivePDU(parser.readBundle())
+                agent.bpa.receivePDU(parser.readBundle())
             }
         } catch (e: Exception) {
             log.debug("could not parse the response bundle: ${e.message}")

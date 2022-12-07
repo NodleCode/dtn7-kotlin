@@ -16,8 +16,8 @@ enum class BlockType(val code: Int) {
     MetadataExtensionBlock(8),
     ExtensionSecurityBlock(9),
     HopCountBlock(10),
-    BlockIntegrityBlock(40),
-    BlockConfidentialityBlock(41),
+    BlockIntegrityBlock(11),
+    BlockConfidentialityBlock(12),
 }
 
 data class CanonicalBlock(

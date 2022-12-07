@@ -11,20 +11,20 @@ import java.net.URI
 /**
  * @author Lucien Loiseau on 17/02/21.
  */
-open class BpNode(
+class BpNode(
     nodeId: URI,
-    override val bundleStorage : IBundleStorage,
+    override val store : IStorage = NoStorage,
 ) : IBundleNode {
 
     private val scope = CoroutineScope(Dispatchers.IO)
 
     override val router = StaticRoutingTable()
 
-    override val bundleProtocolAgent = BundleProtocolAgent(this)
+    override val bpa = BundleProtocolAgent(this)
 
     override val applicationAgent = MuxAgent(nodeId) {
         scope.launch {
-            bundleProtocolAgent.transmitADU(it)
+            bpa.transmitADU(it)
         }
         true
     }

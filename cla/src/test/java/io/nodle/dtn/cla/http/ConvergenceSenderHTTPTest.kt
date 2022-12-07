@@ -1,134 +1,110 @@
 package io.nodle.dtn.cla.http
 
+import com.sun.net.httpserver.HttpServer
 import io.nodle.dtn.bpv7.*
-import io.nodle.dtn.bpv7.bpsec.addEd25519Signature
-import io.nodle.dtn.crypto.Ed25519Util
+import io.nodle.dtn.bpv7.eid.createDtnEid
 import io.nodle.dtn.interfaces.IBundleNode
-import io.nodle.dtn.interfaces.nodeId
+import io.nodle.dtn.interfaces.IBundleProtocolAgent
+import io.nodle.dtn.utils.encodeToBase64
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runBlockingTest
-import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters
 import org.junit.Assert.*
-
-import org.junit.Before
 import org.junit.FixMethodOrder
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.MethodSorters
-import org.mockito.MockitoAnnotations
-import org.mockito.junit.MockitoJUnit
 import org.mockito.junit.MockitoJUnitRunner
-import org.mockito.junit.MockitoRule
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
+import java.net.InetSocketAddress
 import java.net.URI
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlin.random.Random
 
-/*
+
 @ExperimentalCoroutinesApi
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 @RunWith(MockitoJUnitRunner.Silent::class)
 class ConvergenceSenderHTTPTest {
-    // TODO CLASS
-    private val uri = URI.create("https://nodle.io")
-    private val agent = mock<IBundleNode> {
-        on { mock.applicationAgent.nodeId() } doReturn URI.create("dtn://test/")
+
+    private fun http(str: String, hdl : (Bundle) -> Bundle?) : HttpServer {
+        val address = InetSocketAddress(0)
+        val server = HttpServer.create(address, 0)
+        server.createContext(str) {
+            val response = hdl(cborUnmarshalBundle(it.requestBody))?.cborMarshal()
+            it.sendResponseHeaders(200,response?.size?.toLong()?:0)
+            it.responseBody.write(response?: byteArrayOf())
+        }
+        server.start()
+        println("server is started on port: "+server.address.port+" (${server.address.hostName})")
+        return server
     }
-    private val http = ConvergenceSenderHTTP(agent, uri)
 
-    @get:Rule
-    var initRule: MockitoRule = MockitoJUnit.rule()
+    private fun bundle(s: Int = 10000) = PrimaryBlock()
+        .destination(createDtnEid("test-destination"))
+        .source(createDtnEid("test-source"))
+        .reportTo(createDtnEid("test-report-to"))
+        .lifetime(1000)
+        .crcType(CRCType.CRC32)
+        .makeBundle()
+        .addBlock(payloadBlock(Random.nextBytes(array = ByteArray(s))))
 
-    @Before
-    fun setUp() {
-        MockitoAnnotations.openMocks(this)
-    }
+    private fun bundles(c: Int, s: Int = 10000) = (0 until c).map { bundle(s) }
 
-    @Test
-    fun test0_getPeerEndpointId() {
-        /* Check */
-        assertEquals(http.getPeerEndpointId(), uri)
+    private fun assertEquals(b1: Bundle, b2: Bundle) =
+        assertEquals(b1.cborMarshal().encodeToBase64(), b2.cborMarshal().encodeToBase64())
+
+    private fun mockAgent(hdl : (Bundle) -> Unit = {}): IBundleNode  {
+        val bpa = object : IBundleProtocolAgent {
+            override suspend fun transmitADU(bundle: Bundle) = TODO()
+            override suspend fun receivePDU(bundle: Bundle) = hdl(bundle)
+        }
+        return mock<IBundleNode> {
+            on {mock.bpa} doReturn bpa
+        }
     }
 
     @Test
     fun test1_sendBundle() {
+        val bundle = bundle()
+        val latch = CountDownLatch(1)
+        val server = http("/") {
+            println("received a bundle")
+            assertEquals(bundle,it)
+            latch.countDown()
+            null
+        }
+
         /* Check */
         runBlockingTest {
-            val uri = URI.create("https://nodle.io")
-            val agent = mock<IBundleNode>() {
-                on { mock.applicationAgent.nodeId() } doReturn URI.create("dtn://test/")
-            }
-
-            val http = mock<ConvergenceSenderHTTP>() {
-                on { mock.agent } doReturn agent
-                on { mock.url } doReturn uri
-            }
-
-            val localNodeId = URI.create("dtn://test/")
-            val remoteNodeId = URI.create("dtn://nodle/dtn-router")
-            val keyPair = Ed25519Util.generateEd25519KeyPair()
-
-            val outBundle1 = PrimaryBlock()
-                .destination(remoteNodeId)
-                .source(localNodeId)
-                .reportTo(remoteNodeId)
-                .crcType(CRCType.CRC32)
-                .makeBundle()
-                .addBlock(payloadBlock(ByteArray(10000)))
-                .addEd25519Signature(keyPair.private as Ed25519PrivateKeyParameters, listOf(0, 1))
-
-            http.sendBundle(outBundle1)
-
-            verify(http).sendBundle(outBundle1)
+            val uri = URI.create("http://127.0.0.1:${server.address.port}")
+            val cla = ConvergenceSenderHTTP(mockAgent(), uri)
+            cla.sendBundle(bundle)
+            assertEquals(true, latch.await(1, TimeUnit.SECONDS))
         }
     }
 
     @Test
-    fun test2_sendBundles() {
-        runBlockingTest {
-            val localNodeId = URI.create("dtn://test/")
-            val remoteNodeId = URI.create("dtn://nodle/dtn-router")
-            val keyPair = Ed25519Util.generateEd25519KeyPair()
-
-            val uri = URI.create("https://nodle.io")
-            val agent = mock<IBundleNode> {
-                on { mock.applicationAgent.nodeId() } doReturn URI.create("dtn://test/")
-            }
-
-            val http = mock<ConvergenceSenderHTTP> {
-                on { mock.agent } doReturn agent
-                on { mock.url } doReturn uri
-            }
-
-            val outBundle1 = PrimaryBlock()
-                .destination(remoteNodeId)
-                .source(localNodeId)
-                .reportTo(remoteNodeId)
-                .crcType(CRCType.CRC32)
-                .makeBundle()
-                .addBlock(payloadBlock(ByteArray(10000)))
-                .addEd25519Signature(keyPair.private as Ed25519PrivateKeyParameters, listOf(0, 1))
-
-            val bundles = listOf<Bundle>(outBundle1)
-
-            http.sendBundles(bundles)
-
-            verify(http).sendBundles(bundles)
+    fun test1_receiveBundle() {
+        val bundle = bundle()
+        val latch = CountDownLatch(1)
+        val server = http("/") {
+            println("endpoint serve bundle")
+            bundle
+        }
+        val agent = mockAgent {
+            println("agent receive bundle")
+            assertEquals(bundle,it)
+            latch.countDown()
         }
 
-    }
-
-    @Test
-    fun test3_getAgent() {
         /* Check */
-        assertEquals(http.agent, agent)
-    }
-
-    @Test
-    fun test4_getUrl() {
-        /* Check */
-        assertEquals(http.url, uri)
+        runBlockingTest {
+            val uri = URI.create("http://127.0.0.1:${server.address.port}")
+            val cla = ConvergenceSenderHTTP(agent, uri)
+            cla.sendBundle(bundle)
+            assertEquals(true, latch.await(2, TimeUnit.SECONDS))
+        }
     }
 }
-*/

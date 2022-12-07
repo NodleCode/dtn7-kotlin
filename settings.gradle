@@ -2,9 +2,11 @@ include ':bpv7'
 include ':aa'
 include ':cla'
 include ':agent'
-include ':linux-storage'
+include ':storage-sqldb'
+include ':storage-roomdb'
 include ':bputil'
 
-project(":linux-storage").projectDir = file("linux/storage")
+project(":storage-sqldb").projectDir = file("storage/storage-sqldb")
+project(":storage-roomdb").projectDir = file("storage/storage-roomdb")
 project(":bputil").projectDir = file("tools/bputil")
 

@@ -1,12 +1,9 @@
 package io.nodle.dtn.storage
 
 import io.nodle.dtn.bpv7.*
-import io.nodle.dtn.interfaces.BundleDescriptor
-import io.nodle.dtn.interfaces.IBundleStorage
-import io.nodle.dtn.interfaces.ID
-import io.nodle.dtn.interfaces.expireAt
+import io.nodle.dtn.interfaces.*
 
-class BundleStorageImpl(database: Database) : IBundleStorage {
+class LinuxBundleStorageImpl(database: Database) : IBundleStorage {
 
     private val dao = database.bundleEntryQueries
 
@@ -28,7 +25,7 @@ class BundleStorageImpl(database: Database) : IBundleStorage {
         with(desc) {
             dao.insert(
                 ID(),
-                FragmentID(),
+                fragmentedID(),
                 bundle.primaryBlock.destination.toASCIIString(),
                 bundle.primaryBlock.source.toASCIIString(),
                 bundle.primaryBlock.fragmentOffset,

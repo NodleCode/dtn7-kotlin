@@ -4,13 +4,13 @@ buildscript {
     ext.kotlin_version = '1.7.22'
     repositories {
         google()
-        jcenter()
+        mavenCentral()
         maven {
             url "https://plugins.gradle.org/m2/"
         }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.2.2'
+        classpath 'com.android.tools.build:gradle:7.1.3'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "gradle.plugin.com.cookpad.android.plugin:plugin:1.2.2"
 
@@ -22,12 +22,12 @@ buildscript {
 allprojects {
     repositories {
         google()
-        jcenter()
+        mavenCentral()
         maven { url 'https://jitpack.io' }
     }
 }
 
-project.apply from: project.rootDir.absolutePath + '/jacocoLib.gradle'
+//project.apply from: project.rootDir.absolutePath + '/jacocoLib.gradle'
 
 static def gitSha() {
     def sha = ""
@@ -39,16 +39,24 @@ static def gitSha() {
 }
 
 ext {
+    minSdkVersion = 19
+    compileSdkVersion = 31
+    targetSdkVersion = 31
     jacksonCbor = "2.14.0"
     kotlinxCoroutine="1.6.4"
     junit = "4.13.2"
-    slf4_logger = "1.7.30"
+    extJunitVersion = "1.1.4"
+    espressoCoreVersion = "3.5.0"
+    slf4_logger = "1.7.36"
     bounty = "1.65"
     picocli = "4.7.0"
+    coreKtxVersion = "1.5.0"
     mockitoVersion = "4.1.0"
     coroutineTest = "1.6.4"
     arrow_version = "1.1.2"
     sqldelightVersion = "1.5.4"
+    roomVersion = "2.4.3"
+    roomTestingVersion = "2.4.3"
 }
 
 task clean(type: Delete) {

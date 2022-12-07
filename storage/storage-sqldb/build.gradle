@@ -1,4 +1,5 @@
 plugins {
+    id 'java-library'
     id 'kotlin'
     id 'com.squareup.sqldelight'
     id 'com.cookpad.android.plugin.license-tools'
@@ -11,7 +12,7 @@ afterEvaluate {
             libraryJar(MavenPublication) {
                 from components.kotlin
                 groupId = 'com.github.NodleCode.dtn7-kotlin'
-                artifactId = 'linux-storage'
+                artifactId = 'storage-sqldb'
                 version = gitSha()
             }
         }
@@ -36,7 +37,7 @@ dependencies {
     implementation "com.squareup.sqldelight:sqlite-driver:$sqldelightVersion"
 
     // kotlin
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 
     // test only dependencies
     testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutine"
@@ -48,4 +49,9 @@ dependencies {
 
     // Mockito
     testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoVersion"
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }

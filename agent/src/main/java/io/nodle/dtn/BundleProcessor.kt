@@ -56,7 +56,7 @@ suspend fun IBundleNode.bundleReceive(desc: BundleDescriptor) {
     if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestReception)) {
         bpLog.debug("bundle:${desc.ID()} - request reporting on reception")
         applicationAgent.administrativeAgent.sendStatusReport(
-            this.bundleProtocolAgent,
+            this.bpa,
             desc,
             StatusAssertion.ReceivedBundle,
             StatusReportReason.NoInformation
@@ -86,7 +86,7 @@ suspend fun IBundleNode.bundleReceive(desc: BundleDescriptor) {
                         "type=${block.blockType}  - unprocessed block requested reporting "
             )
             applicationAgent.administrativeAgent.sendStatusReport(
-                this.bundleProtocolAgent,
+                this.bpa,
                 desc,
                 StatusAssertion.ReceivedBundle,
                 StatusReportReason.BlockUnsupported
@@ -160,7 +160,7 @@ suspend fun IBundleNode.localDelivery(desc: BundleDescriptor) {
             /* step 3 */
             if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestDelivery)) {
                 applicationAgent.administrativeAgent.sendStatusReport(
-                    this.bundleProtocolAgent,
+                    this.bpa,
                     desc,
                     StatusAssertion.DeliveredBundle,
                     StatusReportReason.NoInformation
@@ -183,14 +183,14 @@ suspend fun IBundleNode.localDelivery(desc: BundleDescriptor) {
 /* 5.9 */
 suspend fun IBundleNode.aduReassembly(desc: BundleDescriptor): BundleDescriptor? {
     val fid = desc.fragmentedID()
-    bundleStorage.insert(desc)
+    store.bundleStore.insert(desc)
 
-    if (bundleStorage.isBundleWhole(fid)) {
+    if (store.bundleStore.isBundleWhole(fid)) {
         bpLog.debug("fragments:${desc.fragmentedID()} - all fragments have been recovered")
-        return bundleStorage.getBundleFromFragments(fid)?.apply {
+        return store.bundleStore.getBundleFromFragments(fid)?.apply {
             bpLog.debug("bundle:${desc.ID()} - bundle has been reassembled")
             desc.constraints.clear()
-            bundleStorage.deleteAllFragments(fid)
+            store.bundleStore.deleteAllFragments(fid)
         }
     } else {
         bpLog.debug("fragments:${desc.fragmentedID()} - fragments missing")
@@ -245,7 +245,7 @@ suspend fun IBundleNode.bundleForwarding(desc: BundleDescriptor) {
         bpLog.debug("bundle:${desc.ID()} - forwarding succeeded")
         if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestForward)) {
             applicationAgent.administrativeAgent.sendStatusReport(
-                this.bundleProtocolAgent,
+                this.bpa,
                 desc,
                 StatusAssertion.ForwardedBundle,
                 StatusReportReason.NoInformation
@@ -273,7 +273,7 @@ suspend fun IBundleNode.bundleDeletion(desc: BundleDescriptor, reason: StatusRep
     /* step 1 */
     if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestDeletion)) {
         applicationAgent.administrativeAgent.sendStatusReport(
-            this.bundleProtocolAgent,
+            this.bpa,
             desc,
             StatusAssertion.DeletedBundle,
             reason

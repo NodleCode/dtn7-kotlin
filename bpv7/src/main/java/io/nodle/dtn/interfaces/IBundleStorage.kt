@@ -11,7 +11,7 @@ interface IBundleStorage {
     fun getAllBundleIds(): List<BundleID>
     fun get(bid: BundleID): BundleDescriptor?
     fun exists(bid: BundleID): Boolean
-    fun insert(desc: BundleDescriptor): Long
+    fun insert(desc: BundleDescriptor): Long?
     fun delete(bid: BundleID)
     fun deleteAll()
 

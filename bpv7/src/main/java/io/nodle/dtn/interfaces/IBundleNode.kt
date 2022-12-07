@@ -13,7 +13,7 @@ interface IBundleNode {
     /**
      * get the bundle protocol agent associated with this bundle node
      */
-    val bundleProtocolAgent: IBundleProtocolAgent
+    val bpa: IBundleProtocolAgent
 
     /**
      * get the routing agent associated with this bundle node mapping to all CLAs
@@ -23,6 +23,6 @@ interface IBundleNode {
     /**
      * get the storage layer associated with this bundle node
      */
-    val bundleStorage : IBundleStorage
+    val store : IStorage
 
 }

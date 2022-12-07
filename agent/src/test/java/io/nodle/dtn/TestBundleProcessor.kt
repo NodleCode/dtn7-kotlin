@@ -24,8 +24,7 @@ class TestBundleProcessor {
     @Test
     fun stage0_testSimpleDelivery() {
         val delivered: MutableList<Bundle> = mutableListOf()
-        val storage = mock<IBundleStorage> {}
-        val node = BpNode(URI.create("dtn://test/"), storage)
+        val node = BpNode(URI.create("dtn://test/"))
         node.applicationAgent
             .handlePath("/test1") {
                 delivered.add(it)
@@ -33,7 +32,7 @@ class TestBundleProcessor {
             }
 
         runTest {
-            node.bundleProtocolAgent.receivePDU(MockBundle.inBundle1)
+            node.bpa.receivePDU(MockBundle.inBundle1)
             Assert.assertTrue(delivered.size == 1)
         }
     }
@@ -42,8 +41,7 @@ class TestBundleProcessor {
     fun stage1_testDeliveryWithAck() {
         val delivered: MutableList<Bundle> = mutableListOf()
         val transmitted: MutableList<Bundle> = mutableListOf()
-        val storage = mock<IBundleStorage> {}
-        val node = BpNode(URI.create("dtn://test/"), storage)
+        val node = BpNode(URI.create("dtn://test/"))
         node.applicationAgent
             .handlePath("/test1") {
                 delivered.add(it)
@@ -57,7 +55,7 @@ class TestBundleProcessor {
         })
 
         runTest {
-            node.bundleProtocolAgent.receivePDU(MockBundle.inBundle2)
+            node.bpa.receivePDU(MockBundle.inBundle2)
             Assert.assertTrue(delivered.size == 1)
             Assert.assertTrue(transmitted.size == 1)
         }
@@ -66,8 +64,7 @@ class TestBundleProcessor {
     @Test
     fun stage2_testSimpleTransmission() {
         val transmitted: MutableList<Bundle> = mutableListOf()
-        val storage = mock<IBundleStorage> {}
-        val node = BpNode(URI.create("dtn://test/"), storage)
+        val node = BpNode(URI.create("dtn://test/"))
         node.router.setDefaultRoute(mock {
             onBlocking { sendBundle(any()) } doAnswer {
                 transmitted.add(it.getArgument(0))
@@ -76,7 +73,7 @@ class TestBundleProcessor {
         })
 
         runTest {
-            node.bundleProtocolAgent.receivePDU(MockBundle.outBundle1)
+            node.bpa.receivePDU(MockBundle.outBundle1)
             Assert.assertTrue(transmitted.size == 1)
         }
     }
@@ -84,8 +81,7 @@ class TestBundleProcessor {
     @Test
     fun stage3_testTransmissionWithForwardAck() {
         val transmitted: MutableList<Bundle> = mutableListOf()
-        val storage = mock<IBundleStorage> {}
-        val node = BpNode(URI.create("dtn://test/"), storage)
+        val node = BpNode(URI.create("dtn://test/"))
         node.router.setDefaultRoute(mock {
             onBlocking { sendBundle(any()) } doAnswer {
                 transmitted.add(it.getArgument(0))
@@ -94,7 +90,7 @@ class TestBundleProcessor {
         })
 
         runTest {
-            node.bundleProtocolAgent.receivePDU(MockBundle.outBundle2)
+            node.bpa.receivePDU(MockBundle.outBundle2)
             Assert.assertTrue(transmitted.size == 2)
         }
     }
@@ -102,8 +98,7 @@ class TestBundleProcessor {
     @Test
     fun stage4_testTransmissionWithForwardAndReceptionAck() {
         val transmitted: MutableList<Bundle> = mutableListOf()
-        val storage = mock<IBundleStorage> {}
-        val node = BpNode(URI.create("dtn://test/"), storage)
+        val node = BpNode(URI.create("dtn://test/"))
         node.router.setDefaultRoute(mock {
             onBlocking { sendBundle(any()) } doAnswer {
                 transmitted.add(it.getArgument(0))
@@ -112,7 +107,7 @@ class TestBundleProcessor {
         })
 
         runTest {
-            node.bundleProtocolAgent.receivePDU(MockBundle.outBundle3)
+            node.bpa.receivePDU(MockBundle.outBundle3)
             Assert.assertTrue(transmitted.size == 3)
         }
 

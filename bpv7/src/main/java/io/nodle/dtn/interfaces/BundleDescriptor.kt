@@ -18,6 +18,7 @@ enum class BundleConstraint(val code: String) {
 enum class BundleTag(val code: String) {
     OriginCLA("origin_cla"),
     OriginLocal("origin_local"),
+    OriginStorage("origin_storage"),
     Delivered("delivered"),
     Forwarded("forwarded")
 }
