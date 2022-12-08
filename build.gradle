@@ -27,7 +27,7 @@ allprojects {
     }
 }
 
-//project.apply from: project.rootDir.absolutePath + '/jacocoLib.gradle'
+project.apply from: project.rootDir.absolutePath + '/jacocoLib.gradle'
 
 static def gitSha() {
     def sha = ""

@@ -6,7 +6,7 @@ import io.nodle.dtn.interfaces.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-class BundleProtocolAgent(private val core: BpNode) : IBundleProtocolAgent {
+class BundleProtocolAgent(private val core: IBundleNode) : IBundleProtocolAgent {
 
     private val bpaLog: Logger = LoggerFactory.getLogger("BundleProtocolAgent")
 
