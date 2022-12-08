@@ -26,3 +26,7 @@ fun payloadBlock(buffer: ByteArray) : CanonicalBlock = CanonicalBlock(
     blockType = BlockType.PayloadBlock.code,
     data = BlobBlockData(buffer)
 )
+
+fun Bundle.getPayloadBlockData() = getPayloadBlock().data as PayloadBlockData
+
+fun Bundle.getPayloadSize() = getPayloadBlockData().buffer.size.toLong()

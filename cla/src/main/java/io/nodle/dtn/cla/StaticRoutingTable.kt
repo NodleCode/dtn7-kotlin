@@ -7,13 +7,13 @@ import org.slf4j.LoggerFactory
 import java.net.URI
 
 class StaticRoutingTable : IRouter {
-    val log = LoggerFactory.getLogger("RoutingTable")
+    private val log = LoggerFactory.getLogger("RoutingTable")
 
     // main routing table
     var staticRoutes : MutableMap<URI, IConvergenceLayerSender> = HashMap()
     var default : IConvergenceLayerSender? = null
 
-    override fun setDefaultRoute(cla: IConvergenceLayerSender?) {
+    fun setDefaultRoute(cla: IConvergenceLayerSender?) {
         default = cla
     }
 

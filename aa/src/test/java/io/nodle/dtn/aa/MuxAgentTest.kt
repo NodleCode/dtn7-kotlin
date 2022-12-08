@@ -14,7 +14,7 @@ import org.mockito.junit.MockitoRule
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 @RunWith(MockitoJUnitRunner::class)
-class StaticRegistrarTest {
+class MuxAgentTest {
 
     @get:Rule
     var initRule: MockitoRule = MockitoJUnit.rule()

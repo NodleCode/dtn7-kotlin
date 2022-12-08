@@ -3,10 +3,10 @@
 
 dtn7-kotlin is a delay-tolerant networking software suite for kotlin, Bundle Protocol Version 7.
 It is well unit-tested and compatible with the [dtn7-go](https://github.com/dtn7/dtn7-go/) bpv7 suite.
-It currently support the following protocols:
+It currently supports the following protocols:
 
-* [bpv7](https://tools.ietf.org/html/draft-ietf-dtn-bpbis-31#page-39) revision 31
-* [bpsec](https://tools.ietf.org/html/draft-ietf-dtn-bpsec-26) revision 26
+* [bpv7](https://datatracker.ietf.org/doc/html/rfc9171) rfc9171
+* [bpsec](https://datatracker.ietf.org/doc/html/rfc9172) rfc9172
 
 
 ## bputil Tool

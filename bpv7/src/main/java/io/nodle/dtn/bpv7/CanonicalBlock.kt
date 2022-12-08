@@ -7,11 +7,17 @@ import io.nodle.dtn.utils.LastBufferOutputStream
  */
 enum class BlockType(val code: Int) {
     PayloadBlock(1),
+    BundleAuthenticationBlock(2),
+    PayloadIntegrityBlock(3),
+    PayloadConfidentialityBlock(4),
+    PreviousHopInsertionBlock(5),
     PreviousNodeBlock(6),
     BundleAgeBlock(7),
+    MetadataExtensionBlock(8),
+    ExtensionSecurityBlock(9),
     HopCountBlock(10),
-    BlockIntegrityBlock(40),
-    BlockConfidentialityBlock(41),
+    BlockIntegrityBlock(11),
+    BlockConfidentialityBlock(12),
 }
 
 data class CanonicalBlock(

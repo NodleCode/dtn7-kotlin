@@ -56,7 +56,7 @@ class BpCreate : Callable<Void> {
     private var armor = false
 
     override fun call(): Void? {
-        val crc = if (crc16) {
+        val crc : CRCType = if (crc16) {
             CRCType.CRC16
         } else {
             CRCType.CRC32
@@ -68,7 +68,7 @@ class BpCreate : Callable<Void> {
                 .reportTo(URI.create(report))
                 .procV7Flags(flags)
                 .crcType(crc)
-                .lifetime(System.currentTimeMillis()+lifetime)
+                .lifetime(lifetime)
                 .makeBundle()
                 .addBlock(payloadBlock(System.`in`.readBytes()).crcType(crc))
 
@@ -79,7 +79,7 @@ class BpCreate : Callable<Void> {
 
         if (targets.isNotEmpty()) {
             if (hexKey == "") {
-                println("the --key paraneter must be supplied with --sign")
+                println("the --key parameter must be supplied with --sign")
             }
 
             try {

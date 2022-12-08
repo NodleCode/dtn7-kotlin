@@ -3,52 +3,52 @@ package io.nodle.dtn
 import io.nodle.dtn.bpv7.Bundle
 import io.nodle.dtn.bpv7.ID
 import io.nodle.dtn.interfaces.*
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-/**
- * @author Lucien Loiseau on 17/02/21.
- */
+class BundleProtocolAgent(private val core: BpNode) : IBundleProtocolAgent {
 
-abstract class BundleProtocolAgent : IAgent {
+    private val bpaLog: Logger = LoggerFactory.getLogger("BundleProtocolAgent")
 
-    val bpaLog = LoggerFactory.getLogger("BundleProtocolAgent")
-
-    override suspend fun transmit(bundle: Bundle) {
+    override suspend fun transmitADU(bundle: Bundle) {
         checkDuplicate(bundle) {
-            val desc = processBundleTransmission(bundle)
-            doneProcessing(desc)
+            BundleDescriptor(bundle).apply {
+                tags.add(BundleTag.OriginLocal.code)
+
+                core.bundleTransmission(this)
+                doneProcessing(this)
+            }
         }
     }
 
-    override suspend fun receive(bundle: Bundle) {
+    override suspend fun receivePDU(bundle: Bundle) {
         checkDuplicate(bundle) {
-            val desc = processReceivedBundle(bundle)
-            doneProcessing(desc)
+            BundleDescriptor(bundle).apply {
+                tags.add(BundleTag.OriginCLA.code)
+                core.bundleReceive(this)
+                doneProcessing(this)
+            }
+        }
+    }
+
+    private fun doneProcessing(desc: BundleDescriptor) {
+        if (desc.constraints.contains(BundleConstraint.ForwardPending.code) &&
+            desc.constraints.contains(BundleConstraint.Contraindicated.code)) {
+            // store
+            bpaLog.debug("bundle:${desc.ID()} - forward later, put in storage")
+            core.store.bundleStore.insert(desc)
+        } else {
+            // delete
+            bpaLog.debug("bundle:${desc.ID()} - forget this bundle")
+            core.store.bundleStore.delete(desc.ID())
         }
     }
 
     private suspend fun checkDuplicate(bundle: Bundle, func: suspend (Bundle) -> Any) {
-        if (!isDuplicate(bundle)) {
+        if (!core.store.bundleStore.exists(bundle.ID())) {
             func(bundle)
         } else {
             bpLog.debug("bundle:${bundle.ID()} - duplicate bundle, ignore")
         }
     }
-
-    private suspend fun processBundleTransmission(bundle: Bundle): BundleDescriptor =
-            BundleDescriptor(bundle).apply {
-                tags.add(BundleTag.OriginLocal.code)
-                bundleTransmission(this)
-            }
-
-    private suspend fun processReceivedBundle(bundle: Bundle): BundleDescriptor =
-            BundleDescriptor(bundle).apply {
-                tags.add(BundleTag.OriginCLA.code)
-                bundleReceive(this)
-            }
-
-    abstract suspend fun isDuplicate(bundle: Bundle): Boolean
-
-    abstract suspend fun doneProcessing(desc: BundleDescriptor)
-
 }

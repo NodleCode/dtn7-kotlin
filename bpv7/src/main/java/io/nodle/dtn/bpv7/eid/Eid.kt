@@ -8,6 +8,9 @@ import java.net.URISyntaxException
  */
 
 
+open class InvalidEid : Exception()
+
+@Throws(InvalidEid::class)
 fun URI.checkValidEid() {
     checkSchemeNotNull()
     when(scheme) {

@@ -4,7 +4,7 @@ import java.net.URI
 import java.net.URISyntaxException
 import java.util.*
 
-class InvalidDtnEid : Exception()
+class InvalidDtnEid : InvalidEid()
 
 const val EID_DTN_IANA_VALUE = 1
 

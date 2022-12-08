@@ -22,8 +22,8 @@ fun PreviousNodeBlockData.replaceWith(eid: URI) {
 }
 
 fun Bundle.getPreviousNodeBlockData() = (canonicalBlocks
-        .first { it.blockType == BlockType.PreviousNodeBlock.code }
-        .data as PreviousNodeBlockData)
+        .firstOrNull { it.blockType == BlockType.PreviousNodeBlock.code }
+        ?.data as PreviousNodeBlockData?)
 
 @Throws(CborEncodingException::class)
 fun PreviousNodeBlockData.cborMarshalData(out: OutputStream) {

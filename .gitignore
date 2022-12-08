@@ -5,8 +5,9 @@ release/
 mapping.txt
 
 # linux package
-linux.tar.gz
-linux/
+package/
+pkg.tar.gz
+pkg/
 
 # Android Studio
 .project

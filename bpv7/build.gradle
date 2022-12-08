@@ -1,5 +1,6 @@
 plugins {
-    id 'org.jetbrains.kotlin.jvm'
+    id 'java-library'
+    id 'kotlin'
     id 'com.cookpad.android.plugin.license-tools'
     id 'maven-publish'
 }
@@ -20,7 +21,7 @@ afterEvaluate {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     api group: 'org.slf4j', name:'slf4j-api', version: "$slf4_logger"
-
+    
     // crypto
     api group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: "$bounty"
 
@@ -28,7 +29,8 @@ dependencies {
     api "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:$jacksonCbor"
 
     // kotlin
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutine"
 
     // test only dependencies
     testImplementation "junit:junit:$junit"
@@ -38,4 +40,9 @@ dependencies {
 
     // Mockito
     testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoVersion"
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }

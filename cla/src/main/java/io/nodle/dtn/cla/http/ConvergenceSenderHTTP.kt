@@ -4,7 +4,7 @@ import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import io.nodle.dtn.bpv7.Bundle
 import io.nodle.dtn.bpv7.cborMarshal
 import io.nodle.dtn.bpv7.readBundle
-import io.nodle.dtn.interfaces.IAgent
+import io.nodle.dtn.interfaces.IBundleNode
 import io.nodle.dtn.interfaces.IConvergenceLayerSender
 import org.slf4j.LoggerFactory
 import java.io.InputStream
@@ -16,17 +16,16 @@ import java.net.URL
  * @author Lucien Loiseau on 17/02/21.
  */
 open class ConvergenceSenderHTTP(
-        val agent: IAgent,
-        var url: URI) : IConvergenceLayerSender {
+    private val agent: IBundleNode,
+    var url: URI
+) : IConvergenceLayerSender {
 
-    companion object {
-        val log = LoggerFactory.getLogger("ConvergenceSenderHTTP")
-    }
+    private val log = LoggerFactory.getLogger("ConvergenceSenderHTTP")
 
     override fun getPeerEndpointId(): URI {
         return url
     }
-
+    
     override suspend fun sendBundle(bundle: Bundle): Boolean = sendBundles(listOf(bundle))
 
     override suspend fun sendBundles(bundles: List<Bundle>): Boolean {
@@ -51,7 +50,8 @@ open class ConvergenceSenderHTTP(
 
                 // return response code
                 if (connection.responseCode == HttpURLConnection.HTTP_ACCEPTED ||
-                        connection.responseCode == HttpURLConnection.HTTP_OK) {
+                    connection.responseCode == HttpURLConnection.HTTP_OK
+                ) {
                     // response may contain multiple bundle
                     parseResponse(connection.inputStream)
                     true
@@ -71,7 +71,7 @@ open class ConvergenceSenderHTTP(
         try {
             val parser = CBORFactory().createParser(inputStream)
             while (!parser.isClosed) {
-                agent.receive(parser.readBundle())
+                agent.bpa.receivePDU(parser.readBundle())
             }
         } catch (e: Exception) {
             log.debug("could not parse the response bundle: ${e.message}")

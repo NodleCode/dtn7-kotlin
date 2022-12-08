@@ -21,23 +21,25 @@ fun hopCountBlockData(limit: Int, count : Int) : CanonicalBlock = CanonicalBlock
 fun HopCountBlockData.isExceeded() : Boolean =
         count > limit
 
-fun HopCountBlockData.inc() {
+fun HopCountBlockData.inc(): HopCountBlockData {
     count++
+    return this
 }
 
-fun HopCountBlockData.dec() {
+fun HopCountBlockData.dec(): HopCountBlockData {
     count--
+    return this
 }
 
 fun Bundle.getHopCountBlockData() = (canonicalBlocks
-        .first { it.blockType == BlockType.HopCountBlock.code }
-        .data as HopCountBlockData)
+        .firstOrNull { it.blockType == BlockType.HopCountBlock.code }
+        ?.data as HopCountBlockData?)
 
 
 @Throws(CborEncodingException::class)
 fun HopCountBlockData.cborMarshalData(out: OutputStream) {
     CBORFactory().createGenerator(CloseProtectOutputStream(out)).use {
-        it.writeStartArray(2)
+        it.writeStartArray(null, 2)
         it.writeNumber(limit)
         it.writeNumber(count)
         it.writeEndArray()

@@ -7,8 +7,6 @@ import io.nodle.dtn.bpv7.Bundle
  */
 interface IRouter {
 
-    fun setDefaultRoute(cla: IConvergenceLayerSender?)
-
     fun findRoute(bundle : Bundle) : IConvergenceLayerSender?
     
 }

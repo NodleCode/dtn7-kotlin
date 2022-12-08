@@ -1,9 +1,6 @@
 package io.nodle.dtn.bpv7.bpsec
 
-import io.nodle.dtn.bpv7.Bundle
-import io.nodle.dtn.bpv7.CanonicalBlock
-import io.nodle.dtn.bpv7.ValidationException
-import io.nodle.dtn.bpv7.hasBlockNumber
+import io.nodle.dtn.bpv7.*
 
 /**
  * @author Lucien Loiseau on 14/02/21.
@@ -37,7 +34,9 @@ fun CanonicalBlock.checkValidBIB(bundle: Bundle) {
         }
     }
 
-    when (asb.securityContext) {
-        SecurityContext.Ed25519BlockSignature.id -> asb.checkValidEd25519Signatures(bundle)
+    if(!bundle.isFlagSet(BundleV7Flags.IsFragment)) {
+        when (asb.securityContext) {
+            SecurityContext.Ed25519BlockSignature.id -> asb.checkValidEd25519Signatures(bundle)
+        }
     }
 }

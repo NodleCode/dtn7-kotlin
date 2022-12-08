@@ -1,7 +1,6 @@
 package io.nodle.dtn.bpv7
 
 import io.nodle.dtn.bpv7.administrative.StatusReport
-import io.nodle.dtn.bpv7.administrative.StatusReportReason
 import io.nodle.dtn.bpv7.administrative.cborUnmarshalAdmnistrativeRecord
 
 /**
@@ -9,8 +8,9 @@ import io.nodle.dtn.bpv7.administrative.cborUnmarshalAdmnistrativeRecord
  */
 
 data class Bundle(
-        var primaryBlock: PrimaryBlock,
-        var canonicalBlocks: MutableList<CanonicalBlock> = ArrayList())
+    var primaryBlock: PrimaryBlock,
+    var canonicalBlocks: MutableList<CanonicalBlock> = ArrayList()
+)
 
 fun Bundle.addBlock(block: CanonicalBlock, pickNumber: Boolean = true): Bundle {
     if (block.blockType != BlockType.PayloadBlock.code || !hasBlockType(BlockType.PayloadBlock.code)) {
@@ -34,12 +34,15 @@ fun Bundle.getBlockType(blockType: Int) = canonicalBlocks.firstOrNull { it.block
 
 fun Bundle.getBlockNumber(blockNumber: Int) = canonicalBlocks.firstOrNull { it.blockNumber == blockNumber }
 
-fun Bundle.getPayloadBlock() = getBlockType(BlockType.PayloadBlock.code)
+fun Bundle.getPayloadBlock() = getBlockType(BlockType.PayloadBlock.code)!!
 
-fun Bundle.getStatusReport() = (getPayloadBlock()?.data as PayloadBlockData)
-        .buffer.run {
+fun Bundle.getStatusReport() {
+    if (primaryBlock.isAdministiveRecord()) {
+        getPayloadBlockData().buffer.run {
             cborUnmarshalAdmnistrativeRecord(this).data as StatusReport
         }
+    }
+}
 
 fun Bundle.ID() = primaryBlock.ID()
 fun Bundle.fragmentedID() = primaryBlock.fragmentedID()

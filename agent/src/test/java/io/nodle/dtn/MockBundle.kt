@@ -10,9 +10,9 @@ import java.net.URI
  * @author Lucien Loiseau on 18/02/21.
  */
 public object MockBundle {
-    val localNodeId = URI.create("dtn://test/")
-    val remoteNodeId = URI.create("dtn://nodle/dtn-router")
-    val keyPair = Ed25519Util.generateEd25519KeyPair()
+    private val localNodeId: URI = URI.create("dtn://test/test1")
+    private val remoteNodeId: URI = URI.create("dtn://nodle/dtn-router")
+    private val keyPair = Ed25519Util.generateEd25519KeyPair()
 
     val inBundle1 = PrimaryBlock()
             .destination(localNodeId)
@@ -27,7 +27,7 @@ public object MockBundle {
             .destination(localNodeId)
             .source(remoteNodeId)
             .reportTo(remoteNodeId)
-            .procV7Flags(BundleV7Flags.StatusRequestDelivery)
+            .setProcV7Flags(BundleV7Flags.StatusRequestDelivery)
             .crcType(CRCType.CRC32)
             .makeBundle()
             .addBlock(payloadBlock(ByteArray(10000)))
@@ -47,7 +47,7 @@ public object MockBundle {
             .source(localNodeId)
             .reportTo(remoteNodeId)
             .crcType(CRCType.CRC32)
-            .procV7Flags(BundleV7Flags.StatusRequestForward)
+            .setProcV7Flags(BundleV7Flags.StatusRequestForward)
             .makeBundle()
             .addBlock(payloadBlock(ByteArray(10000)))
             .addEd25519Signature(keyPair.private as Ed25519PrivateKeyParameters, listOf(0, 1))
@@ -57,8 +57,8 @@ public object MockBundle {
             .source(localNodeId)
             .reportTo(remoteNodeId)
             .crcType(CRCType.CRC32)
-            .procV7Flags(BundleV7Flags.StatusRequestForward)
-            .procV7Flags(BundleV7Flags.StatusRequestReception)
+            .setProcV7Flags(BundleV7Flags.StatusRequestForward)
+            .setProcV7Flags(BundleV7Flags.StatusRequestReception)
             .makeBundle()
             .addBlock(payloadBlock(ByteArray(10000)))
             .addEd25519Signature(keyPair.private as Ed25519PrivateKeyParameters, listOf(0, 1))

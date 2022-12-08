@@ -1,0 +1,57 @@
+plugins {
+    id 'java-library'
+    id 'kotlin'
+    id 'com.squareup.sqldelight'
+    id 'com.cookpad.android.plugin.license-tools'
+    id 'maven-publish'
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            libraryJar(MavenPublication) {
+                from components.kotlin
+                groupId = 'com.github.NodleCode.dtn7-kotlin'
+                artifactId = 'storage-sqldb'
+                version = gitSha()
+            }
+        }
+    }
+}
+
+
+sqldelight {
+    Database { // This will be the name of the generated database class.
+        packageName = "io.nodle.dtn.storage"
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    api group: 'org.slf4j', name:'slf4j-api', version: "$slf4_logger"
+
+    // bpv7
+    implementation project(path: ':bpv7')
+
+    // sql
+    implementation "com.squareup.sqldelight:sqlite-driver:$sqldelightVersion"
+
+    // kotlin
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+
+    // test only dependencies
+    testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutine"
+    testImplementation group: 'org.slf4j', name: 'slf4j-simple', version: "$slf4_logger"
+    testImplementation "junit:junit:$junit"
+
+    // coroutine test kotlin
+    testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutineTest"
+
+    // Mockito
+    testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoVersion"
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}

@@ -32,7 +32,7 @@ class BpShow : Callable<Void> {
                 val bundle = parser.readBundle()
                 if (!validate) {
                     if (payload && bundle.hasBlockType(BlockType.PayloadBlock)) {
-                        System.`out`.write((bundle.getPayloadBlock()?.data as BlobBlockData).buffer)
+                        System.`out`.write((bundle.getPayloadBlock().data as BlobBlockData).buffer)
                     } else {
                         println(bundle)
                     }

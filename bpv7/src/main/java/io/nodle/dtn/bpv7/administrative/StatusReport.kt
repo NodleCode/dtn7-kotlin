@@ -71,27 +71,29 @@ enum class StatusReportReason(val code: Int) {
 }
 
 data class StatusItem(
-        var statusAssertion: Int,
-        var asserted: Boolean = false,
-        var timestamp: Long = 0,
+    var statusAssertion: Int,
+    var asserted: Boolean = false,
+    var timestamp: Long = 0,
 )
 
-fun statusRecord(bundle: Bundle,
-                 assertion:
-                 StatusAssertion,
-                 reason: StatusReportReason,
-                 time: Long): AdministrativeRecord {
+fun statusRecord(
+    bundle: Bundle,
+    assertion: StatusAssertion,
+    reason: StatusReportReason,
+    time: Long
+): AdministrativeRecord {
     return AdministrativeRecord(
-            recordTypeCode = RecordTypeCode.StatusRecordType.code,
-            data = StatusReport()
-                    .assert(assertion, true, time)
-                    .reason(reason)
-                    .creationTimestamp(bundle.primaryBlock.creationTimestamp)
-                    .source(bundle.primaryBlock.source))
+        recordTypeCode = RecordTypeCode.StatusRecordType.code,
+        data = StatusReport()
+            .assert(assertion, true, time)
+            .reason(reason)
+            .creationTimestamp(bundle.primaryBlock.creationTimestamp)
+            .source(bundle.primaryBlock.source)
+    )
 }
 
 fun StatusReport.assert(status: StatusAssertion, assert: Boolean, time: Long) =
-        assert(status.code, assert, time)
+    assert(status.code, assert, time)
 
 fun StatusReport.assert(status: Int, assert: Boolean, time: Long): StatusReport {
     when (status) {
@@ -100,10 +102,10 @@ fun StatusReport.assert(status: Int, assert: Boolean, time: Long): StatusReport 
         StatusAssertion.DeliveredBundle.code -> delivered = time
         StatusAssertion.DeletedBundle.code -> deleted = time
         else -> otherAssertions.firstOrNull { it.statusAssertion == status }
-                ?.apply {
-                    asserted = assert
-                    timestamp = time
-                } ?: otherAssertions.add(StatusItem(status, assert, time))
+            ?.apply {
+                asserted = assert
+                timestamp = time
+            } ?: otherAssertions.add(StatusItem(status, assert, time))
     }
     return this
 }
