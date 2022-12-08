@@ -2,21 +2,21 @@ package io.nodle.dtn.storage
 
 import android.content.Context
 import androidx.room.Room
-import io.nodle.dtn.interfaces.IBundleStorage
-import io.nodle.dtn.interfaces.IStorage
+import io.nodle.dtn.interfaces.IBundleStore
+import io.nodle.dtn.interfaces.Bpv7Storage
 
-class AndroidStorageImpl(context: Context, inMemory: Boolean) : IStorage {
+class Bpv7StorageRoomDb(context: Context, inMemory: Boolean) : Bpv7Storage {
     private val sdkDb = if (inMemory) {
         Room.inMemoryDatabaseBuilder(
             context,
-            AndroidDatabase::class.java
+            Bpv7Database::class.java
         )
             .fallbackToDestructiveMigration()
             .build()
     } else {
         Room.databaseBuilder(
             context,
-            AndroidDatabase::class.java,
+            Bpv7Database::class.java,
             "bpv7-db"
         )
             .fallbackToDestructiveMigration()
@@ -35,6 +35,6 @@ class AndroidStorageImpl(context: Context, inMemory: Boolean) : IStorage {
         TODO("Not yet implemented")
     }
 
-    override val bundleStore: IBundleStorage by lazy { AndroidBundleStorageImpl(sdkDb.bundleStore()) }
+    override val bundleStore: IBundleStore by lazy { BundleStoreRoomDb(sdkDb.bundleStore()) }
 
 }

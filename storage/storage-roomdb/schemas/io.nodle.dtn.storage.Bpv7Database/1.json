@@ -1,0 +1,125 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "66d5a03a1f68f42fdb05a49d133f8ce9",
+    "entities": [
+      {
+        "tableName": "BundleEntry",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`bid` TEXT NOT NULL, `fid` TEXT NOT NULL, `destination` TEXT NOT NULL, `source` TEXT NOT NULL, `offset` INTEGER NOT NULL, `payload_size` INTEGER NOT NULL, `appdata` INTEGER NOT NULL, `constraints` TEXT NOT NULL, `tags` TEXT NOT NULL, `created` INTEGER NOT NULL, `expire` INTEGER NOT NULL, `bundle` TEXT NOT NULL, `row_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "bid",
+            "columnName": "bid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fid",
+            "columnName": "fid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "destination",
+            "columnName": "destination",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "source",
+            "columnName": "source",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "offset",
+            "columnName": "offset",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payloadSize",
+            "columnName": "payload_size",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "appdata",
+            "columnName": "appdata",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "constraints",
+            "columnName": "constraints",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tags",
+            "columnName": "tags",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "created",
+            "columnName": "created",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "expire",
+            "columnName": "expire",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bundle",
+            "columnName": "bundle",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "id",
+            "columnName": "row_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "row_id"
+          ],
+          "autoGenerate": true
+        },
+        "indices": [
+          {
+            "name": "index_BundleEntry_bid",
+            "unique": true,
+            "columnNames": [
+              "bid"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_BundleEntry_bid` ON `${TABLE_NAME}` (`bid`)"
+          },
+          {
+            "name": "index_BundleEntry_row_id",
+            "unique": false,
+            "columnNames": [
+              "row_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_BundleEntry_row_id` ON `${TABLE_NAME}` (`row_id`)"
+          }
+        ],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '66d5a03a1f68f42fdb05a49d133f8ce9')"
+    ]
+  }
+}

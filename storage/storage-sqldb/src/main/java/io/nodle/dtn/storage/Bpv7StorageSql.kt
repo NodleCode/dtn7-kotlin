@@ -1,10 +1,11 @@
 package io.nodle.dtn.storage
 
 import com.squareup.sqldelight.sqlite.driver.JdbcSqliteDriver
-import io.nodle.dtn.interfaces.IBundleStorage
-import io.nodle.dtn.interfaces.IStorage
+import io.nodle.dtn.interfaces.IBundleStore
+import io.nodle.dtn.interfaces.Bpv7Storage
+import io.nodle.dtn.utils.wait
 
-class LinuxStorageImpl(inMemory: Boolean) : IStorage {
+class Bpv7StorageSql(inMemory: Boolean) : Bpv7Storage {
 
     private val driver = if(inMemory) {
         JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
@@ -22,13 +23,13 @@ class LinuxStorageImpl(inMemory: Boolean) : IStorage {
     }
 
     override fun clearAllTables() {
-        bundleStore.deleteAll()
+        bundleStore.wait{ deleteAll() }
     }
 
     override fun close() {
         driver.close()
     }
 
-    override val bundleStore: IBundleStorage by lazy { LinuxBundleStorageImpl(database) }
+    override val bundleStore: IBundleStore by lazy { BundleStoreSql(database) }
 
 }

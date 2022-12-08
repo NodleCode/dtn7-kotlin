@@ -23,6 +23,6 @@ interface IBundleNode {
     /**
      * get the storage layer associated with this bundle node
      */
-    val store : IStorage
+    val store : Bpv7Storage
 
 }

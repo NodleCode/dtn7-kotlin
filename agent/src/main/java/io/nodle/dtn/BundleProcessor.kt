@@ -273,14 +273,30 @@ suspend fun IBundleNode.bundleForwarding(desc: BundleDescriptor) {
 /* 5.4.1 */
 suspend fun IBundleNode.bundleContraindicated(desc: BundleDescriptor, status: TransmissionStatus) {
     bpLog.debug("bundle:${desc.ID()} - bundle marked for contraindication")
-    if(!router.declareFailure(desc.bundle, status)) {
+
+    /* step 1 */
+    if(router.declareFailure(desc.bundle, status)) {
+        /* step 2 */
+        bundleForwardingFailed(desc, status)
+    } else {
+        bpLog.debug("bundle:${desc.ID()} - bundle forwarding deferred")
         desc.constraints.add(BundleConstraint.Contraindicated.code)
     }
 }
 
 /* 5.4.2 */
 suspend fun IBundleNode.bundleForwardingFailed(desc: BundleDescriptor, status: TransmissionStatus) {
-    bpLog.debug("bundle:${desc.ID()} - deciding whether to declare failure or not")
+    bpLog.debug("bundle:${desc.ID()} - bundle forwarding operation declared as failure")
+
+    /* step 1 */
+    // not doing
+
+    /* step 2 */
+    if (applicationAgent.isLocal(desc.bundle.primaryBlock.destination)) {
+        desc.constraints.remove(BundleConstraint.ForwardPending.code)
+    } else {
+        bundleDeletion(desc, StatusReportReason.NoInformation)
+    }
 }
 
 /* 5.10 */

@@ -31,7 +31,7 @@ class BundleProtocolAgent(private val core: IBundleNode) : IBundleProtocolAgent 
         }
     }
 
-    private fun doneProcessing(desc: BundleDescriptor) {
+    private suspend fun doneProcessing(desc: BundleDescriptor) {
         if (desc.constraints.contains(BundleConstraint.ForwardPending.code) &&
             desc.constraints.contains(BundleConstraint.Contraindicated.code)) {
             // store

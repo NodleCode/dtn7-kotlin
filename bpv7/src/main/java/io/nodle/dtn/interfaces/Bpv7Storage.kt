@@ -1,11 +1,11 @@
 package io.nodle.dtn.interfaces
 
-interface IStorage {
+interface Bpv7Storage {
 
     fun init()
     fun clearAllTables()
     fun close()
 
-    val bundleStore : IBundleStorage
+    val bundleStore : IBundleStore
 
 }

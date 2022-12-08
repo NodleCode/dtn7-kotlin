@@ -86,7 +86,7 @@ fun Bundle.checkLifetimeExceeded() {
 
     if (isExpired()) {
         throw ValidationException(
-            "bundle:${ID()} - primary: bundle has expired",
+            "bundle:${ID()} - primary: bundle has expired (${(dtnTimeNow() - expireAt())/1000} seconds ago)",
             StatusReportReason.LifetimeExpired
         )
     }
@@ -99,11 +99,11 @@ fun Bundle.expireAt(): DtnTime =
         (this.primaryBlock.creationTimestamp + this.primaryBlock.lifetime)
     }
 
-fun Bundle.isExpired(): Boolean =
+fun Bundle.isExpired(now : Long = dtnTimeNow()): Boolean =
     if (this.primaryBlock.creationTimestamp == 0L) {
         getAgeBlockData()!!.age > this.primaryBlock.lifetime
     } else {
-        (dtnTimeNow() > (this.primaryBlock.creationTimestamp + this.primaryBlock.lifetime))
+        (now > (this.primaryBlock.creationTimestamp + this.primaryBlock.lifetime))
     }
 
 @Throws(ValidationException::class)

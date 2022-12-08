@@ -13,7 +13,7 @@ import java.net.URI
  */
 class BpNode(
     nodeId: URI,
-    override val store : IStorage = NoStorage,
+    override val store : Bpv7Storage = NoBpv7Storage,
 ) : IBundleNode {
 
     private val scope = CoroutineScope(Dispatchers.IO)

@@ -3,25 +3,25 @@ package io.nodle.dtn.storage
 import io.nodle.dtn.bpv7.*
 import io.nodle.dtn.interfaces.*
 
-class LinuxBundleStorageImpl(database: Database) : IBundleStorage {
+class BundleStoreSql(database: Database) : IBundleStore {
 
     private val dao = database.bundleEntryQueries
 
-    override fun size() = dao.size().executeAsOne().toInt()
+    override suspend fun size() = dao.size().executeAsOne().toInt()
 
-    override fun gc(now: Long) {
+    override suspend fun gc(now: Long) {
         dao.gc(now)
     }
 
-    override fun getAllBundleIds() = dao.getAllBundleIds().executeAsList()
+    override suspend fun getAllBundleIds() = dao.getAllBundleIds().executeAsList()
 
-    override fun get(bid: String): BundleDescriptor? {
+    override suspend fun get(bid: String): BundleDescriptor? {
         return dao.get(bid).executeAsOneOrNull()?.toBundleDescriptor()
     }
 
-    override fun exists(bid: String) = dao.exists(bid).executeAsOne()
+    override suspend fun exists(bid: String) = dao.exists(bid).executeAsOne()
 
-    override fun insert(desc: BundleDescriptor): Long {
+    override suspend fun insert(desc: BundleDescriptor) {
         with(desc) {
             dao.insert(
                 ID(),
@@ -38,21 +38,21 @@ class LinuxBundleStorageImpl(database: Database) : IBundleStorage {
                 BundleConverter.fromBundle(bundle)
             )
         }
-        return dao.last_insert_rowid().executeAsOne()
+        dao.last_insert_rowid().executeAsOne()
     }
 
-    override fun delete(bid: String) {
+    override suspend fun delete(bid: String) {
         dao.delete(bid)
     }
 
-    override fun deleteAll() {
+    override suspend fun deleteAll() {
         dao.deleteAll()
     }
 
-    override fun getAllFragments(fragmentId: FragmentID): List<BundleID> =
+    override suspend fun getAllFragments(fragmentId: FragmentID): List<BundleID> =
         dao.getAllFragments(fragmentId).executeAsList().map { it.bid }
 
-    override fun isBundleWhole(fragmentId: FragmentID): Boolean {
+    override suspend fun isBundleWhole(fragmentId: FragmentID): Boolean {
         return dao.getAllFragments(fragmentId).executeAsList().fold(Pair(0L, 0L)) { acc, elem ->
             if(acc.second != elem.offset) {
                 return@isBundleWhole false
@@ -63,7 +63,7 @@ class LinuxBundleStorageImpl(database: Database) : IBundleStorage {
         }
     }
 
-    override fun getBundleFromFragments(fragmentId: FragmentID): BundleDescriptor? {
+    override suspend fun getBundleFromFragments(fragmentId: FragmentID): BundleDescriptor? {
         return dao.getAllFragments(fragmentId).executeAsList().fold(null as BundleDescriptor?) { acc, elem ->
             acc?.apply {
                 bundle.getPayloadBlockData().buffer += get(elem.bid)!!.bundle.getPayloadBlockData().buffer
@@ -73,5 +73,5 @@ class LinuxBundleStorageImpl(database: Database) : IBundleStorage {
         }
     }
 
-    override fun deleteAllFragments(fragmentId: FragmentID) = dao.deleteAllFragments(fragmentId)
+    override suspend fun deleteAllFragments(fragmentId: FragmentID) = dao.deleteAllFragments(fragmentId)
 }

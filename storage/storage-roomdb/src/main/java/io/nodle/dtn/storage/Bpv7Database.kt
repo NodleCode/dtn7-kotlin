@@ -13,6 +13,6 @@ import androidx.room.TypeConverters
     StringListConverter::class,
     BundleConverter::class
 )
-abstract class AndroidDatabase : RoomDatabase() {
+abstract class Bpv7Database : RoomDatabase() {
     abstract fun bundleStore(): BundleEntryDao
 }

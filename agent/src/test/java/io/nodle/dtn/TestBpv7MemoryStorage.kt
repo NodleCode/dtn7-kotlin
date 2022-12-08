@@ -1,6 +1,5 @@
-package io.nodle.dtn.storage
+package io.nodle.dtn
 
-import androidx.test.platform.app.InstrumentationRegistry
 import io.nodle.dtn.bpv7.*
 import io.nodle.dtn.bpv7.eid.createDtnEid
 import io.nodle.dtn.interfaces.BundleDescriptor
@@ -10,7 +9,7 @@ import org.junit.Assert
 import org.junit.Test
 import kotlin.random.Random
 
-class StorageRoomTest {
+class TestBpv7MemoryStorage {
 
     private fun bundle(s: Int = 10000) = PrimaryBlock()
         .destination(createDtnEid("test-destination"))
@@ -25,8 +24,7 @@ class StorageRoomTest {
 
     @Test
     fun testInsertGetExists() {
-        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
-        val storage = Bpv7StorageRoomDb(ctx, true)
+        val storage = Bpv7MemoryStorage()
         val bundle = bundle()
 
         storage.bundleStore.wait { insert(BundleDescriptor(bundle)) }
@@ -42,8 +40,7 @@ class StorageRoomTest {
 
     @Test
     fun testGc() {
-        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
-        val storage = Bpv7StorageRoomDb(ctx, true)
+        val storage = Bpv7MemoryStorage()
         val bundle = bundle()
 
         storage.bundleStore.wait { insert(BundleDescriptor(bundle)) }
@@ -58,8 +55,7 @@ class StorageRoomTest {
 
     @Test
     fun testGetAllBundleIds() {
-        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
-        val storage = Bpv7StorageRoomDb(ctx, true)
+        val storage = Bpv7MemoryStorage()
         val bundles = bundles(10)
 
         bundles.map {
@@ -78,8 +74,7 @@ class StorageRoomTest {
 
     @Test
     fun testDelete() {
-        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
-        val storage = Bpv7StorageRoomDb(ctx, true)
+        val storage = Bpv7MemoryStorage()
         val bundle = bundle()
 
         storage.bundleStore.wait { insert(BundleDescriptor(bundle)) }
@@ -94,8 +89,7 @@ class StorageRoomTest {
 
     @Test
     fun testDeleteAll() {
-        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
-        val storage = Bpv7StorageRoomDb(ctx, true)
+        val storage = Bpv7MemoryStorage()
         val bundles = bundles(10)
 
         bundles.map {
@@ -112,8 +106,7 @@ class StorageRoomTest {
 
     @Test
     fun testGetAllFragment() {
-        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
-        val storage = Bpv7StorageRoomDb(ctx, true)
+        val storage = Bpv7MemoryStorage()
         val bundle = bundle(10000)
         val fragments = bundle.fragment(300)
 
@@ -129,8 +122,7 @@ class StorageRoomTest {
 
     @Test
     fun testIsBundleWhole() {
-        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
-        val storage = Bpv7StorageRoomDb(ctx, true)
+        val storage = Bpv7MemoryStorage()
         val bundle = bundle(10000)
         val fragments = bundle.fragment(300)
 
@@ -151,8 +143,7 @@ class StorageRoomTest {
 
     @Test
     fun testGetBundleFromFragment() {
-        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
-        val storage = Bpv7StorageRoomDb(ctx, true)
+        val storage = Bpv7MemoryStorage()
         val bundle = bundle(10000)
         val fragments = bundle.fragment(300)
 
@@ -168,8 +159,7 @@ class StorageRoomTest {
 
     @Test
     fun testDeleteAllFragment() {
-        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
-        val storage = Bpv7StorageRoomDb(ctx, true)
+        val storage = Bpv7MemoryStorage()
         val bundle = bundle(10000)
         val fragments = bundle.fragment(300)
 
