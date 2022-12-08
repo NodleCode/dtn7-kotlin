@@ -8,10 +8,7 @@ import org.junit.Assert
 import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runners.MethodSorters
-import org.mockito.kotlin.any
-import org.mockito.kotlin.doAnswer
-import org.mockito.kotlin.doReturn
-import org.mockito.kotlin.mock
+import org.mockito.kotlin.*
 import java.net.URI
 
 /**
@@ -42,15 +39,16 @@ class TestBundleProcessor {
         val delivered: MutableList<Bundle> = mutableListOf()
         val transmitted: MutableList<Bundle> = mutableListOf()
         val node = BpNode(URI.create("dtn://test/"))
-        node.applicationAgent
-            .handlePath("/test1") {
-                delivered.add(it)
-                DeliveryStatus.DeliverySuccessful
-            }
+
+        node.applicationAgent.handlePath("/test1") {
+            delivered.add(it)
+            DeliveryStatus.DeliverySuccessful
+        }
+
         node.router.setDefaultRoute(mock {
-            onBlocking { sendBundle(any()) } doAnswer {
-                transmitted.add(it.getArgument(0))
-                true
+            on { scheduleForTransmission } doReturn {
+                transmitted.add(it)
+                TransmissionStatus.TransmissionSuccessful
             }
         })
 
@@ -66,9 +64,9 @@ class TestBundleProcessor {
         val transmitted: MutableList<Bundle> = mutableListOf()
         val node = BpNode(URI.create("dtn://test/"))
         node.router.setDefaultRoute(mock {
-            onBlocking { sendBundle(any()) } doAnswer {
-                transmitted.add(it.getArgument(0))
-                true
+            on { scheduleForTransmission } doReturn  {
+                transmitted.add(it)
+                TransmissionStatus.TransmissionSuccessful
             }
         })
 
@@ -83,9 +81,9 @@ class TestBundleProcessor {
         val transmitted: MutableList<Bundle> = mutableListOf()
         val node = BpNode(URI.create("dtn://test/"))
         node.router.setDefaultRoute(mock {
-            onBlocking { sendBundle(any()) } doAnswer {
-                transmitted.add(it.getArgument(0))
-                true
+            on { scheduleForTransmission } doReturn  {
+                transmitted.add(it)
+                TransmissionStatus.TransmissionSuccessful
             }
         })
 
@@ -100,9 +98,9 @@ class TestBundleProcessor {
         val transmitted: MutableList<Bundle> = mutableListOf()
         val node = BpNode(URI.create("dtn://test/"))
         node.router.setDefaultRoute(mock {
-            onBlocking { sendBundle(any()) } doAnswer {
-                transmitted.add(it.getArgument(0))
-                true
+            on { scheduleForTransmission } doReturn {
+                transmitted.add(it)
+                TransmissionStatus.TransmissionSuccessful
             }
         })
 
@@ -110,6 +108,5 @@ class TestBundleProcessor {
             node.bpa.receivePDU(MockBundle.outBundle3)
             Assert.assertTrue(transmitted.size == 3)
         }
-
     }
 }

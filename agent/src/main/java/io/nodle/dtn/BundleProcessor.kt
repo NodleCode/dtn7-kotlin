@@ -241,29 +241,46 @@ suspend fun IBundleNode.bundleForwarding(desc: BundleDescriptor) {
     }
 
     /* step 5 */
-    if (router.findRoute(desc.bundle)?.sendBundle(desc.bundle) == true) {
-        bpLog.debug("bundle:${desc.ID()} - forwarding succeeded")
-        if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestForward)) {
-            applicationAgent.administrativeAgent.sendStatusReport(
-                this.bpa,
-                desc,
-                StatusAssertion.ForwardedBundle,
-                StatusReportReason.NoInformation
-            )
-        }
-
-        // delete afterward
-        desc.tags.add(BundleTag.Forwarded.code)
-        desc.constraints.clear()
+    val cla = router.findRoute(desc.bundle)
+    if (cla == null) {
+        bpLog.debug("bundle:${desc.ID()} - no route found, forwarding failed")
+        bundleContraindicated(desc, TransmissionStatus.ClaNotFound)
     } else {
-        bpLog.debug("bundle:${desc.ID()} - forwarding failed")
-        bundleContraindicated(desc)
+        when(val status = cla.scheduleForTransmission(desc.bundle)) {
+            TransmissionStatus.TransmissionSuccessful -> {
+                bpLog.debug("bundle:${desc.ID()} - forwarding succeeded")
+                if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestForward)) {
+                    applicationAgent.administrativeAgent.sendStatusReport(
+                        this.bpa,
+                        desc,
+                        StatusAssertion.ForwardedBundle,
+                        StatusReportReason.NoInformation
+                    )
+                }
+
+                // delete afterward
+                desc.tags.add(BundleTag.Forwarded.code)
+                desc.constraints.clear()
+            }
+            else -> {
+                bpLog.debug("bundle:${desc.ID()} - forwarding failed")
+                bundleContraindicated(desc, status)
+            }
+        }
     }
 }
 
-suspend fun IBundleNode.bundleContraindicated(desc: BundleDescriptor) {
+/* 5.4.1 */
+suspend fun IBundleNode.bundleContraindicated(desc: BundleDescriptor, status: TransmissionStatus) {
     bpLog.debug("bundle:${desc.ID()} - bundle marked for contraindication")
-    desc.constraints.add(BundleConstraint.Contraindicated.code)
+    if(!router.declareFailure(desc.bundle, status)) {
+        desc.constraints.add(BundleConstraint.Contraindicated.code)
+    }
+}
+
+/* 5.4.2 */
+suspend fun IBundleNode.bundleForwardingFailed(desc: BundleDescriptor, status: TransmissionStatus) {
+    bpLog.debug("bundle:${desc.ID()} - deciding whether to declare failure or not")
 }
 
 /* 5.10 */

@@ -60,7 +60,7 @@ class ConvergenceSenderHTTPTest {
             override suspend fun transmitADU(bundle: Bundle) = TODO()
             override suspend fun receivePDU(bundle: Bundle) = hdl(bundle)
         }
-        return mock<IBundleNode> {
+        return mock {
             on {mock.bpa} doReturn bpa
         }
     }

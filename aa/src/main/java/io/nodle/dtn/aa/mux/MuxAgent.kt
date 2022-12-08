@@ -5,8 +5,6 @@ import io.nodle.dtn.bpv7.Bundle
 import io.nodle.dtn.bpv7.eid.swapApiMe
 import io.nodle.dtn.interfaces.*
 import io.nodle.dtn.utils.addPath
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import org.slf4j.LoggerFactory
 import java.net.URI
 
@@ -15,16 +13,16 @@ import java.net.URI
  */
 class MuxAgent(
     private val nodeId: URI,
-    override val scheduleForTransmission: TxHandler,
+    override val scheduleForTransmission: AATxHandler,
 ) : IApplicationAgent {
 
     private val log = LoggerFactory.getLogger("MuxAgent")
-    private var muxTable: MutableMap<URI, AAHandler> = mutableMapOf()
+    private var muxTable: MutableMap<URI, AARxHandler> = mutableMapOf()
 
     override val administrativeAgent: IAdministrativeAgent = AdministrativeAgent(nodeId)
     override fun endpoints() = muxTable.map{it.key}.toMutableList().apply { add(nodeId) }
 
-    override val receiveForLocalDelivery: AAHandler = { bundle -> localDelivery(bundle) }
+    override val receiveForLocalDelivery: AARxHandler = { bundle -> localDelivery(bundle) }
 
     private suspend fun localDelivery(bundle: Bundle): DeliveryStatus {
         for ((k, v) in muxTable) {
@@ -46,14 +44,14 @@ class MuxAgent(
         return this
     }
 
-    fun handleEid(eid: URI, handler: AAHandler): MuxAgent {
+    fun handleEid(eid: URI, handler: AARxHandler): MuxAgent {
         if (!muxTable.containsKey(eid)) {
             muxTable[eid] = handler
         }
         return this
     }
 
-    fun handlePath(path: String, handler: AAHandler): MuxAgent {
+    fun handlePath(path: String, handler: AARxHandler): MuxAgent {
         val eid = nodeId.addPath(path)
         return handleEid(eid, handler)
     }

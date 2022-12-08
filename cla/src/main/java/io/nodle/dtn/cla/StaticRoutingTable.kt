@@ -3,6 +3,7 @@ package io.nodle.dtn.cla
 import io.nodle.dtn.bpv7.Bundle
 import io.nodle.dtn.interfaces.IConvergenceLayerSender
 import io.nodle.dtn.interfaces.IRouter
+import io.nodle.dtn.interfaces.TransmissionStatus
 import org.slf4j.LoggerFactory
 import java.net.URI
 
@@ -10,8 +11,8 @@ class StaticRoutingTable : IRouter {
     private val log = LoggerFactory.getLogger("RoutingTable")
 
     // main routing table
-    var staticRoutes : MutableMap<URI, IConvergenceLayerSender> = HashMap()
-    var default : IConvergenceLayerSender? = null
+    var staticRoutes: MutableMap<URI, IConvergenceLayerSender> = HashMap()
+    var default: IConvergenceLayerSender? = null
 
     fun setDefaultRoute(cla: IConvergenceLayerSender?) {
         default = cla
@@ -25,13 +26,21 @@ class StaticRoutingTable : IRouter {
      * @param bundle the bundle to forwards
      * @return a convergence layer or null
      */
-    override fun findRoute(bundle : Bundle) : IConvergenceLayerSender? {
-        for((k, v) in staticRoutes) {
-            if(k == bundle.primaryBlock.destination) {
-                log.debug("route ${v.getPeerEndpointId()} found for bundle ${bundle.hashCode()}")
+    override fun findRoute(bundle: Bundle): IConvergenceLayerSender? {
+        for ((k, v) in staticRoutes) {
+            if (k == bundle.primaryBlock.destination) {
+                log.debug("route ${v.peerEndpointId} found for bundle ${bundle.hashCode()}")
                 return v
             }
         }
         return default
     }
+    
+    override fun declareFailure(bundle: Bundle, status: TransmissionStatus) =
+        when (status) {
+            TransmissionStatus.TransmissionSuccessful,
+            TransmissionStatus.TransmissionFailed,
+            TransmissionStatus.TransmissionTemporaryUnavailable -> false
+            else -> true
+        }
 }

@@ -18,14 +18,15 @@ class BpNode(
 
     private val scope = CoroutineScope(Dispatchers.IO)
 
-    override val router = StaticRoutingTable()
-
-    override val bpa = BundleProtocolAgent(this)
-
     override val applicationAgent = MuxAgent(nodeId) {
         scope.launch {
             bpa.transmitADU(it)
         }
         true
     }
+
+    override val bpa = BundleProtocolAgent(this)
+
+    override val router = StaticRoutingTable()
+
 }

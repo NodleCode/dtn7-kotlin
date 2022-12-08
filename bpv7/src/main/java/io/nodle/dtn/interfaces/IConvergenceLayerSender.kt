@@ -6,12 +6,13 @@ import java.net.URI
 /**
  * @author Lucien Loiseau on 17/02/21.
  */
+typealias ClaRxHandler = suspend (Bundle) -> Boolean
+typealias ClaTxHandler = suspend (Bundle) -> TransmissionStatus
+
 interface IConvergenceLayerSender {
 
-    suspend fun sendBundles(bundles : List<Bundle>) : Boolean
+    val peerEndpointId: URI
 
-    suspend fun sendBundle(bundle : Bundle) : Boolean
-
-    fun getPeerEndpointId() : URI
+    val scheduleForTransmission: ClaTxHandler
 
 }

@@ -10,8 +10,8 @@ sealed class DeliveryStatus {
     object DeliveryRejected : DeliveryStatus()
 }
 
-typealias AAHandler = suspend (Bundle) -> DeliveryStatus
-typealias TxHandler = suspend (Bundle) -> Boolean
+typealias AARxHandler = suspend (Bundle) -> DeliveryStatus
+typealias AATxHandler = suspend (Bundle) -> Boolean
 
 /**
  * @author Lucien Loiseau on 17/02/21.
@@ -30,14 +30,14 @@ interface IApplicationAgent {
      * This method expects a Bundle as a parameter and returns true if the BPA successfully scheduled the bundle.
      * It returns false otherwise.
      */
-    val scheduleForTransmission: TxHandler
+    val scheduleForTransmission: AATxHandler
 
     /**
      * receiveForLocalDelivery is called by the BPA whenever a bundle is scheduled for local delivery.
      * This method expects a Bundle as a parameter and return true if the bundle was successfully delivered.
      * It returns false otherwise.
      */
-    val receiveForLocalDelivery: AAHandler
+    val receiveForLocalDelivery: AARxHandler
 
 }
 
