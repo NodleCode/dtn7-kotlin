@@ -5,6 +5,8 @@ import io.nodle.dtn.bpv7.Bundle
 import io.nodle.dtn.bpv7.cborMarshal
 import io.nodle.dtn.bpv7.readBundle
 import io.nodle.dtn.interfaces.*
+import io.nodle.dtn.utils.CountingInputStream
+import io.nodle.dtn.utils.CountingOutputStream
 import io.nodle.dtn.utils.addQueryParameter
 import org.slf4j.LoggerFactory
 import java.io.InputStream
@@ -17,7 +19,6 @@ data class ClaHttpClientConfig(
     var httpHeader: MutableMap<String, String> = mutableMapOf(),
 )
 
-
 /**
  * @author Lucien Loiseau on 17/02/21.
  * This CLA is used to trigger an HTTP query whenever a Bundle is scheduled for a
@@ -25,10 +26,10 @@ data class ClaHttpClientConfig(
  * of connection request as it is not throttled.
  */
 open class ClaHttpClient(
-    private val agent: IBundleNode,
-    private val httpEndpoint: URI,
+    open val agent: IBundleNode,
+    open val httpEndpoint: URI,
     override val peerEndpointId: URI,
-    private val config: ClaHttpClientConfig = ClaHttpClientConfig()
+    open val config: ClaHttpClientConfig = ClaHttpClientConfig()
 ) : IConvergenceLayerSender {
 
     private val log = LoggerFactory.getLogger("ClaHttpClient")
@@ -38,17 +39,18 @@ open class ClaHttpClient(
         else TransmissionStatus.TransmissionTemporaryUnavailable
     }
 
-    suspend fun sendBundle(bundle: Bundle): TransmissionStatus = sendBundles(listOf(bundle))
+    open suspend fun sendBundle(bundle: Bundle): TransmissionStatus = sendBundles(listOf(bundle))
 
-    suspend fun sendBundles(bundles: List<Bundle>): TransmissionStatus {
+    open suspend fun sendBundles(bundles: List<Bundle>): TransmissionStatus {
         log.debug(
-            (if(bundles.isNotEmpty()) ">> trying to upload ${bundles.size} bundles to "
+            (if (bundles.isNotEmpty()) ">> trying to upload ${bundles.size} bundles to "
             else ">> polling ") + "$peerEndpointId"
         )
 
-        val url = httpEndpoint
-            .addQueryParameter("peerId", agent.applicationAgent.nodeId().toASCIIString())
-            .toURL()
+        val url = httpEndpoint.addQueryParameter(
+            "peerId",
+            agent.applicationAgent.nodeId().toASCIIString()
+        ).toURL()
 
         return (url.openConnection() as HttpURLConnection).let { connection ->
             try {
@@ -62,18 +64,12 @@ open class ClaHttpClient(
                 }
                 connection.setRequestProperty("Content-Type", "application/octet-stream")
                 connection.instanceFollowRedirects = true
-                connection.connect();
-                val out = connection.outputStream
 
-                // send bundle
-                bundles.map {
-                    it.cborMarshal(out)
-                }
+                connection.connect()
+                bundles.map { it.cborMarshal(connection.outputStream) }
 
-                // return response code
                 when (connection.responseCode) {
                     HttpURLConnection.HTTP_ACCEPTED, HttpURLConnection.HTTP_OK -> {
-                        // update metrics db and parse receiving bundle
                         parseResponse(connection.inputStream)
                         TransmissionStatus.TransmissionSuccessful
                     }
@@ -94,9 +90,9 @@ open class ClaHttpClient(
         }
     }
 
-    private suspend fun parseResponse(inputStream: InputStream) {
+    open suspend fun parseResponse(stream: InputStream) {
         try {
-            val parser = CBORFactory().createParser(inputStream)
+            val parser = CBORFactory().createParser(stream)
             while (!parser.isClosed) {
                 agent.bpa.receivePDU(parser.readBundle())
             }

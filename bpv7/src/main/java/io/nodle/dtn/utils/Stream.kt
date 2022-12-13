@@ -1,5 +1,6 @@
 package io.nodle.dtn.utils
 
+import java.io.InputStream
 import java.io.OutputStream
 import java.nio.ByteBuffer
 
@@ -17,6 +18,25 @@ class DualOutputStream(
 
 }
 
+class CountingInputStream(private val ins : InputStream) : InputStream() {
+    private var counter : Int = 0
+    override fun read(): Int {
+        val r = ins.read()
+        counter++
+        return r
+    }
+    fun bytesRead(): Int = counter
+}
+
+class CountingOutputStream(private val ins : OutputStream) : OutputStream() {
+    private var counter : Int = 0
+    override fun write(p0: Int) {
+        ins.write(p0)
+        counter++
+    }
+    fun bytesSent(): Int = counter
+}
+
 class CloseProtectOutputStream(private val out: OutputStream): OutputStream() {
 
     override fun write(p0: Int) {
@@ -29,7 +49,6 @@ class CloseProtectOutputStream(private val out: OutputStream): OutputStream() {
 }
 
 class LastBufferOutputStream(val size: Int) : OutputStream() {
-
     private val window = ByteBuffer.allocate(size)
     private var counter = 0
 
@@ -50,5 +69,4 @@ class LastBufferOutputStream(val size: Int) : OutputStream() {
         return window.array().copyOfRange(queue, size) +
                 window.array().copyOfRange(0, queue)
     }
-
 }
