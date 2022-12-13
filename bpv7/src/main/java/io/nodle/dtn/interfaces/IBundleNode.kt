@@ -26,3 +26,5 @@ interface IBundleNode {
     val store : Bpv7Storage
 
 }
+
+fun IBundleNode.nodeId() = applicationAgent.administrativeAgent.administrativeEndpoint

@@ -12,7 +12,7 @@ import java.net.URI
  * @author Lucien Loiseau on 17/02/21.
  */
 class MuxAgent(
-    private val nodeId: URI,
+    val nodeId: URI,
     override val scheduleForTransmission: AATxHandler,
 ) : IApplicationAgent {
 

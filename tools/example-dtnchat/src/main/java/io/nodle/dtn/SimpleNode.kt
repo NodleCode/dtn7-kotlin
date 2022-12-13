@@ -4,7 +4,7 @@ import io.nodle.dtn.bpv7.*
 import io.nodle.dtn.cla.http.ClaHttpClient
 import io.nodle.dtn.cla.http.ClaHttpServer
 import io.nodle.dtn.cla.http.ClaHttpServerConfig
-import io.nodle.dtn.cla.http.doPeriodicHttpPolling
+import io.nodle.dtn.cla.http.pollHttpPeriodically
 import io.nodle.dtn.interfaces.DeliveryStatus
 import java.net.URI
 
@@ -23,7 +23,7 @@ fun createBpNodeClient(uri: URI, path: String, handler: (Bundle) -> Unit) =
             peerEndpointId = URI.create("dtn://server/")
         )
         router.setDefaultRoute(cla)
-        doPeriodicHttpPolling(scope, cla, 5, 5)
+        pollHttpPeriodically(scope, cla, 5, 5)
     }
 
 fun createBpNodeServer(uri: URI, path: String, handler: (Bundle) -> Unit) =
