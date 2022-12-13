@@ -24,7 +24,6 @@ class AdministrativeAgent(override val administrativeEndpoint: URI) : IAdministr
         assertion: StatusAssertion,
         reason: StatusReportReason
     ) {
-
         // do not respond to other administrative record
         if (desc.bundle.isFlagSet(BundleV7Flags.AdministrativeRecordPayload)) {
             log.debug(

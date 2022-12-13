@@ -4,6 +4,7 @@ import io.nodle.dtn.bpv7.*
 import io.nodle.dtn.interfaces.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.net.URI
 
 class Bpv7MemoryStorage() : Bpv7Storage {
     override fun init() {
@@ -34,6 +35,11 @@ class Bpv7MemoryStorage() : Bpv7Storage {
                 bundles.map { it.value.ID() }
             }
 
+        override suspend fun getNBundleIds(n: Int): List<BundleID> =
+            mutex.withLock {
+                bundles.map { it.value.ID() }.take(n)
+            }
+
         override suspend fun get(bid: BundleID) =
             mutex.withLock {
                 bundles[bid]
@@ -59,49 +65,37 @@ class Bpv7MemoryStorage() : Bpv7Storage {
                 bundles.clear()
             }
 
-        override suspend fun getAllFragments(fragmentId: FragmentID) =
+        override suspend fun getAllPrimaryDesc(predicate: (PrimaryBlockDescriptor) -> Boolean): List<PrimaryBlockDescriptor> =
             mutex.withLock {
-                bundles
-                    .filter { it.value.fragmentedID() == fragmentId }
-                    .map { it.value.ID() }
+                bundles.map {
+                    PrimaryBlockDescriptor(
+                        primaryBlock = it.value.bundle.primaryBlock.run {
+                            PrimaryBlock(
+                                procV7Flags = procV7Flags,
+                                source = source,
+                                destination = destination,
+                                reportTo = reportTo,
+                                creationTimestamp = creationTimestamp,
+                                sequenceNumber = sequenceNumber,
+                                fragmentOffset = fragmentOffset,
+                                appDataLength = appDataLength
+                            )
+                        },
+                        created = it.value.created,
+                        constraints = it.value.constraints.toMutableList(),
+                        tags = it.value.tags.toMutableList(),
+                        payloadSize = it.value.bundle.getPayloadSize(),
+                        expireAt = it.value.expireAt()
+                    )
+                }.filter(predicate)
             }
 
-        override suspend fun deleteAllFragments(fragmentId: FragmentID) =
-            mutex.withLock {
-                bundles = bundles.filterNot { it.value.fragmentedID() == fragmentId }.toMutableMap()
-            }
+        override suspend fun getNPrimaryDesc(
+            n: Int,
+            predicate: (PrimaryBlockDescriptor) -> Boolean
+        ): List<PrimaryBlockDescriptor> =
+            getAllPrimaryDesc(predicate)
+                .take(n)
 
-        override suspend fun isBundleWhole(fragmentId: FragmentID): Boolean =
-            mutex.withLock {
-                bundles
-                    .filter { it.value.fragmentedID() == fragmentId }
-                    .map { it.value.bundle }
-                    .sortedBy { it.primaryBlock.fragmentOffset }
-                    .fold(Pair(0L, 0L)) { acc, elem ->
-                        if (acc.second != elem.primaryBlock.fragmentOffset) {
-                            return@isBundleWhole false
-                        }
-                        Pair(
-                            elem.primaryBlock.appDataLength,
-                            acc.second + elem.getPayloadSize()
-                        )
-                    }.run {
-                        first == second
-                    }
-            }
-
-        override suspend fun getBundleFromFragments(fragmentId: FragmentID): BundleDescriptor? =
-            mutex.withLock {
-                bundles
-                    .filter { it.value.fragmentedID() == fragmentId }
-                    .map { it.value }
-                    .fold(null as BundleDescriptor?) { acc, elem ->
-                        acc?.apply {
-                            bundle.getPayloadBlockData().buffer += elem.bundle.getPayloadBlockData().buffer
-                        } ?: elem.apply {
-                            bundle.primaryBlock.unsetProcV7Flags(BundleV7Flags.IsFragment)
-                        }
-                    }
-            }
     }
 }

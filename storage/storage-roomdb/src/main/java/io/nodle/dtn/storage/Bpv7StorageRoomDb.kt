@@ -6,7 +6,7 @@ import io.nodle.dtn.interfaces.IBundleStore
 import io.nodle.dtn.interfaces.Bpv7Storage
 
 class Bpv7StorageRoomDb(context: Context, inMemory: Boolean) : Bpv7Storage {
-    private val sdkDb = if (inMemory) {
+    private val db = if (inMemory) {
         Room.inMemoryDatabaseBuilder(
             context,
             Bpv7Database::class.java
@@ -24,17 +24,16 @@ class Bpv7StorageRoomDb(context: Context, inMemory: Boolean) : Bpv7Storage {
     }
 
     override fun init() {
-        TODO("Not yet implemented")
     }
 
     override fun clearAllTables() {
-        TODO("Not yet implemented")
+        db.clearAllTables()
     }
 
     override fun close() {
-        TODO("Not yet implemented")
+        db.close()
     }
 
-    override val bundleStore: IBundleStore by lazy { BundleStoreRoomDb(sdkDb.bundleStore()) }
+    override val bundleStore: IBundleStore by lazy { BundleStoreRoomDb(db.bundleStore()) }
 
 }

@@ -1,36 +1,28 @@
 plugins {
-    id 'java-library'
-    id 'org.jetbrains.kotlin.jvm'
-    id 'com.cookpad.android.plugin.license-tools'
-    id 'maven-publish'
+    id 'kotlin'
+    id 'application'
 }
 
-afterEvaluate {
-    publishing {
-        publications {
-            libraryJar(MavenPublication) {
-                from components.kotlin
-                groupId = 'com.github.NodleCode.dtn7-kotlin'
-                artifactId = 'cla'
-                version = gitSha()
-            }
-        }
-    }
-}
+mainClassName="io.nodle.dtn.Application"
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    api group: 'org.slf4j', name:'slf4j-api', version: "$slf4_logger"
-
-    // cbor
-    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:$jacksonCbor"
 
     // bpv7
     implementation project(path: ':bpv7')
+    implementation project(path: ':aa')
+    implementation project(path: ':agent')
+    implementation project(path: ':cla')
+
+    // logger
+    implementation group: 'org.slf4j', name: 'slf4j-simple', version: "$slf4_logger"
 
     // kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutine"
+
+    // picocli framework for RequestMessage Line Interface
+    implementation "info.picocli:picocli:$picocli"
 
     // test only dependencies
     testImplementation "junit:junit:$junit"
@@ -40,7 +32,6 @@ dependencies {
 
     // Mockito
     testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoVersion"
-
 }
 
 java {

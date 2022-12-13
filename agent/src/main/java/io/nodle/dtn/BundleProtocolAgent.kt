@@ -14,7 +14,6 @@ class BundleProtocolAgent(private val core: IBundleNode) : IBundleProtocolAgent 
         checkDuplicate(bundle) {
             BundleDescriptor(bundle).apply {
                 tags.add(BundleTag.OriginLocal.code)
-
                 core.bundleTransmission(this)
                 doneProcessing(this)
             }
@@ -31,9 +30,23 @@ class BundleProtocolAgent(private val core: IBundleNode) : IBundleProtocolAgent 
         }
     }
 
+    override suspend fun resumeForwarding(desc: BundleDescriptor) =
+        resumeForwarding(desc) { desc, isCancelled ->
+            core.findClaForBundle(desc, isCancelled)
+        }
+
+    override suspend fun resumeForwarding(
+        desc: BundleDescriptor,
+        txHandler: ForwardingTxHandler
+    ) {
+        core.bundleForwarding(desc, txHandler)
+        doneProcessing(desc)
+    }
+
     private suspend fun doneProcessing(desc: BundleDescriptor) {
         if (desc.constraints.contains(BundleConstraint.ForwardPending.code) &&
-            desc.constraints.contains(BundleConstraint.Contraindicated.code)) {
+            desc.constraints.contains(BundleConstraint.Contraindicated.code)
+        ) {
             // store
             bpaLog.debug("bundle:${desc.ID()} - forward later, put in storage")
             core.store.bundleStore.insert(desc)
@@ -41,10 +54,11 @@ class BundleProtocolAgent(private val core: IBundleNode) : IBundleProtocolAgent 
             // delete
             bpaLog.debug("bundle:${desc.ID()} - forget this bundle")
             core.store.bundleStore.delete(desc.ID())
+            desc.tags.add(BundleTag.Deleted.code)
         }
     }
 
-    private suspend fun checkDuplicate(bundle: Bundle, func: suspend (Bundle) -> Any) {
+    private suspend fun checkDuplicate(bundle: Bundle, func: suspend (Bundle) -> Unit) {
         if (!core.store.bundleStore.exists(bundle.ID())) {
             func(bundle)
         } else {

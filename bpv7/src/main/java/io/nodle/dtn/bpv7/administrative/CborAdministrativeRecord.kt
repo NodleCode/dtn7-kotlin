@@ -6,7 +6,11 @@ import com.fasterxml.jackson.dataformat.cbor.CBORGenerator
 import com.fasterxml.jackson.dataformat.cbor.CBORParser
 import io.nodle.dtn.bpv7.CborEncodingException
 import io.nodle.dtn.bpv7.CborParsingException
+import io.nodle.dtn.bpv7.bpsec.cborMarshal
 import io.nodle.dtn.bpv7.cborMarshal
+import io.nodle.dtn.bpv7.eid.EID_IPN_IANA_VALUE
+import io.nodle.dtn.bpv7.eid.getNodeNumberUnsafe
+import io.nodle.dtn.bpv7.eid.getServiceNumberUnsafe
 import io.nodle.dtn.bpv7.readEid
 import io.nodle.dtn.utils.*
 import java.io.ByteArrayInputStream
@@ -19,10 +23,10 @@ import java.io.OutputStream
  */
 @Throws(CborEncodingException::class)
 fun AdministrativeRecord.cborMarshalData(): ByteArray =
-        ByteArrayOutputStream().use {
-            cborMarshalData(it)
-            it
-        }.toByteArray()
+    ByteArrayOutputStream().use {
+        cborMarshalData(it)
+        it
+    }.toByteArray()
 
 @Throws(CborEncodingException::class)
 fun AdministrativeRecord.cborMarshalData(out: OutputStream) {
@@ -48,14 +52,14 @@ fun CBORGenerator.cborMarshal(sr: StatusReport) {
     assertions.addAll(sr.otherAssertions)
 
     writeStartArray(null, assertions.size)
-    assertions.forEach {
-        cborMarshal(it)
+    assertions.forEach { statusItem ->
+        cborMarshal(statusItem)
     }
     writeEndArray()
     writeNumber(sr.bundleStatusReportReason)
     cborMarshal(sr.sourceNodeId)
-    writeNumber(sr.creationTimestamp)
-    if (sr.fragmentOffset.toInt() != -1) {
+    cborMarshal(sr.creationTimestamp, sr.sequenceNumber)
+    if (sr.isFragment) {
         writeNumber(sr.fragmentOffset)
         writeNumber(sr.appDataLength)
     }
@@ -72,7 +76,7 @@ fun CBORGenerator.cborMarshal(item: StatusItem) {
 }
 
 fun StatusReport.cborGetItemCount(): Int {
-    if (fragmentOffset.toInt() == -1) {
+    if (!isFragment) {
         return 4
     }
     return 6
@@ -89,20 +93,20 @@ fun StatusItem.cborGetItemCount(): Int {
 
 @Throws(CborParsingException::class)
 fun cborUnmarshalAdmnistrativeRecord(buffer: ByteArray) =
-        cborUnmarshalAdmnistrativeRecord(ByteArrayInputStream(buffer))
+    cborUnmarshalAdmnistrativeRecord(ByteArrayInputStream(buffer))
 
 @Throws(CborParsingException::class)
 fun cborUnmarshalAdmnistrativeRecord(input: InputStream): AdministrativeRecord {
     return CBORFactory()
-            .createParser(input)
-            .readAdministrativeRecord()
+        .createParser(input)
+        .readAdministrativeRecord()
 }
 
 @Throws(CborParsingException::class)
 fun CBORParser.readAdministrativeRecord(): AdministrativeRecord {
     readStartArray()
     return AdministrativeRecord(
-            recordTypeCode = readInt()
+        recordTypeCode = readInt()
     ).also { adm ->
         adm.data = when (adm.recordTypeCode) {
             RecordTypeCode.StatusRecordType.code -> readStatusReport()
@@ -119,11 +123,15 @@ fun CBORParser.readStatusReport(): StatusReport {
     readStartArray()
     var assertCounter = 0
     return StatusReport(
-            otherAssertions = readArray { readStatusItem(assertCounter++, true) },
-            bundleStatusReportReason = readInt(),
-            sourceNodeId = readEid(),
-            creationTimestamp = readLong()
+        otherAssertions = readArray { readStatusItem(assertCounter++, true) },
+        bundleStatusReportReason = readInt(),
+        sourceNodeId = readEid()
     ).also {
+        readStartArray()
+        it.creationTimestamp = readLong()
+        it.sequenceNumber = readLong()
+        readCloseArray()
+    }.also {
         if (it.otherAssertions.size < 4) {
             throw CborParsingException("missing some of status assertion")
         }

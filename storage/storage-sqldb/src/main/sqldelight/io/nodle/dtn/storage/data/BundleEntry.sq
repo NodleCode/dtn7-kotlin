@@ -1,11 +1,17 @@
 CREATE TABLE IF NOT EXISTS BundleEntry(
 bid TEXT NOT NULL,
-fid TEXT NOT NULL,
+
+flag INTEGER NOT NULL,
 destination TEXT NOT NULL,
 source TEXT NOT NULL,
+report TEXT NOT NULL,
+timestamp INTEGER NOT NULL,
+sequence INTEGER NOT NULL,
+lifetime INTEGER NOT NULL,
 offset INTEGER NOT NULL,
-payload_size INTEGER NOT NULL,
 appdata INTEGER NOT NULL,
+payload_size INTEGER NOT NULL,
+
 constraints TEXT NOT NULL,
 tags TEXT NOT NULL,
 created INTEGER NOT NULL,
@@ -17,7 +23,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS index_BundleEntry_bid ON BundleEntry(bid);
 CREATE INDEX IF NOT EXISTS index_BundleEntry_row_id ON BundleEntry(row_id);
 
 insert:
-INSERT OR FAIL INTO BundleEntry(bid, fid, destination, source, offset, payload_size, appdata, constraints, tags, created, expire, bundle) VALUES(?,?,?,?,?,?,?,?,?,?,?,?);
+INSERT OR FAIL INTO BundleEntry(bid, flag, destination, source, report, timestamp, sequence, lifetime, offset, appdata, payload_size, constraints, tags, created, expire, bundle) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);
 
 last_insert_rowid:
 SELECT last_insert_rowid();
@@ -37,14 +43,17 @@ SELECT * FROM BundleEntry WHERE bid = ?;
 getAllBundleIds:
 SELECT bid FROM BundleEntry ORDER BY expire DESC;
 
-getAllFragments:
-SELECT bid, offset, payload_size, appdata FROM BundleEntry WHERE fid = ? ORDER BY offset ASC;
+getAllPrimary:
+SELECT flag, destination, source, report, timestamp, sequence, offset, appdata, payload_size, constraints, tags, created, expire FROM BundleEntry ORDER BY expire DESC;
+
+getNBundleIds:
+SELECT bid FROM BundleEntry ORDER BY expire DESC LIMIT :limit;
+
+getNPrimary:
+SELECT flag, destination, source, report, timestamp, sequence, offset, appdata, payload_size, constraints, tags, created, expire FROM BundleEntry ORDER BY expire DESC LIMIT :limit;
 
 delete:
 DELETE FROM BundleEntry WHERE bid = ?;
 
 deleteAll:
 DELETE FROM BundleEntry;
-
-deleteAllFragments:
-DELETE FROM BundleEntry WHERE fid = ?;

@@ -15,6 +15,9 @@ class BundleStoreSql(database: Database) : IBundleStore {
 
     override suspend fun getAllBundleIds() = dao.getAllBundleIds().executeAsList()
 
+    override suspend fun getNBundleIds(n: Int): List<BundleID> =
+        dao.getNBundleIds(n.toLong()).executeAsList()
+
     override suspend fun get(bid: String): BundleDescriptor? {
         return dao.get(bid).executeAsOneOrNull()?.toBundleDescriptor()
     }
@@ -25,12 +28,16 @@ class BundleStoreSql(database: Database) : IBundleStore {
         with(desc) {
             dao.insert(
                 ID(),
-                fragmentedID(),
+                bundle.primaryBlock.procV7Flags,
                 bundle.primaryBlock.destination.toASCIIString(),
                 bundle.primaryBlock.source.toASCIIString(),
+                bundle.primaryBlock.reportTo.toASCIIString(),
+                bundle.primaryBlock.creationTimestamp,
+                bundle.primaryBlock.sequenceNumber,
+                bundle.primaryBlock.lifetime,
                 bundle.primaryBlock.fragmentOffset,
-                bundle.getPayloadSize(),
                 bundle.primaryBlock.appDataLength,
+                bundle.getPayloadSize(),
                 StringListConverter.toString(constraints),
                 StringListConverter.toString(tags),
                 created,
@@ -49,29 +56,22 @@ class BundleStoreSql(database: Database) : IBundleStore {
         dao.deleteAll()
     }
 
-    override suspend fun getAllFragments(fragmentId: FragmentID): List<BundleID> =
-        dao.getAllFragments(fragmentId).executeAsList().map { it.bid }
-
-    override suspend fun isBundleWhole(fragmentId: FragmentID): Boolean {
-        return dao.getAllFragments(fragmentId).executeAsList().fold(Pair(0L, 0L)) { acc, elem ->
-            if(acc.second != elem.offset) {
-                return@isBundleWhole false
+    override suspend fun getAllPrimaryDesc(
+        predicate: (PrimaryBlockDescriptor) -> Boolean
+    ): List<PrimaryBlockDescriptor> =
+        dao.getAllPrimary().executeAsList()
+            .map {
+                it.toPrimaryBlockDescriptor()
             }
-            Pair(elem.appdata, acc.second + elem.payload_size)
-        }.run {
-            first == second
-        }
-    }
+            .filter(predicate)
 
-    override suspend fun getBundleFromFragments(fragmentId: FragmentID): BundleDescriptor? {
-        return dao.getAllFragments(fragmentId).executeAsList().fold(null as BundleDescriptor?) { acc, elem ->
-            acc?.apply {
-                bundle.getPayloadBlockData().buffer += get(elem.bid)!!.bundle.getPayloadBlockData().buffer
-            } ?: get(elem.bid)?.apply {
-                this.bundle.primaryBlock.unsetProcV7Flags(BundleV7Flags.IsFragment)
+    override suspend fun getNPrimaryDesc(
+        n: Int,
+        predicate: (PrimaryBlockDescriptor) -> Boolean
+    ): List<PrimaryBlockDescriptor> =
+        dao.getNPrimary(n.toLong()).executeAsList()
+            .map {
+                it.toPrimaryBlockDescriptor()
             }
-        }
-    }
-
-    override suspend fun deleteAllFragments(fragmentId: FragmentID) = dao.deleteAllFragments(fragmentId)
+            .filter(predicate)
 }

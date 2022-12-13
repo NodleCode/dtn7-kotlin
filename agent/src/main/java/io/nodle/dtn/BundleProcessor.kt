@@ -142,17 +142,25 @@ suspend fun IBundleNode.bundleDispatching(desc: BundleDescriptor) {
 suspend fun IBundleNode.localDelivery(desc: BundleDescriptor) {
     bpLog.debug("bundle:${desc.ID()} - local delivery")
 
-    /* step 1 TODO reassembly */
+    /* step 1 */
     if (desc.bundle.primaryBlock.isFragment()) {
         desc.constraints.add(BundleConstraint.ReassemblyPending.code)
-        aduReassembly(desc)?.let{
+        aduReassembly(desc)?.let {
             localDelivery(it)
         }
         return
     }
 
     /* step 2 */
-    when (applicationAgent.receiveForLocalDelivery(desc.bundle)) {
+    bundleProcessDeliveryStatus(desc, applicationAgent.receiveForLocalDelivery(desc.bundle))
+}
+
+/* 5.7 - step 2 */
+suspend fun IBundleNode.bundleProcessDeliveryStatus(
+    desc: BundleDescriptor,
+    status: DeliveryStatus
+) {
+    when (status) {
         DeliveryStatus.DeliverySuccessful -> {
             bpLog.debug("bundle:${desc.ID()} - bundle is delivered")
             desc.tags.add(BundleTag.Delivered.code)
@@ -167,14 +175,16 @@ suspend fun IBundleNode.localDelivery(desc: BundleDescriptor) {
                 )
             }
         }
-
         DeliveryStatus.DeliveryTemporaryUnavailable -> {
             bpLog.debug("bundle:${desc.ID()} - bundle cannot be delivered right now")
-            /* defer */
+            /* defer TODO (right now it would just get deleted) */
         }
-
-        DeliveryStatus.EndpointNotFound, DeliveryStatus.DeliveryRejected -> {
-            bpLog.debug("bundle:${desc.ID()} - delivery unsuccessful")
+        DeliveryStatus.EndpointNotFound -> {
+            bpLog.debug("bundle:${desc.ID()} - endpoint not found for ${desc.bundle.primaryBlock.destination}")
+            desc.constraints.clear()
+        }
+        DeliveryStatus.DeliveryRejected -> {
+            bpLog.debug("bundle:${desc.ID()} - delivery rejected by application agent")
             desc.constraints.clear()
         }
     }
@@ -199,7 +209,10 @@ suspend fun IBundleNode.aduReassembly(desc: BundleDescriptor): BundleDescriptor?
 }
 
 /* 5.4 */
-suspend fun IBundleNode.bundleForwarding(desc: BundleDescriptor) {
+suspend fun IBundleNode.bundleForwarding(
+    desc: BundleDescriptor,
+    txHandler: ForwardingTxHandler = { d,b -> findClaForBundle(d,b)}
+) {
     bpLog.debug("bundle:${desc.ID()} - bundle forwarding")
 
     /* step 1 */
@@ -208,7 +221,7 @@ suspend fun IBundleNode.bundleForwarding(desc: BundleDescriptor) {
 
     /* step 2 and step 3 managed in dispatching at checkValid() */
 
-    /* step 4 */
+    /* step 4.1  */
     // replace previous node block, or insert if none
     desc.bundle.getPreviousNodeBlockData()
         ?.apply { bpLog.debug("bundle:${desc.ID()} - updating previous node block") }
@@ -223,6 +236,7 @@ suspend fun IBundleNode.bundleForwarding(desc: BundleDescriptor) {
             if (isExceeded()) {
                 bpLog.debug("bundle:${desc.ID()} - hop count exceed limit")
                 bundleDeletion(desc, StatusReportReason.HopLimitExceeded)
+                txHandler(desc, true) // notify cla layer about the cancellation
                 return@bundleForwarding
             }
         }
@@ -237,35 +251,55 @@ suspend fun IBundleNode.bundleForwarding(desc: BundleDescriptor) {
     if (desc.bundle.isExpired()) {
         bpLog.debug("bundle:${desc.ID()} - is expired")
         bundleDeletion(desc, StatusReportReason.LifetimeExpired)
-        return
+        txHandler(desc, true) // notify cla layer about the cancellation
+        return@bundleForwarding
     }
 
-    /* step 5 */
-    val cla = router.findRoute(desc.bundle)
-    if (cla == null) {
-        bpLog.debug("bundle:${desc.ID()} - no route found, forwarding failed")
-        bundleContraindicated(desc, TransmissionStatus.ClaNotFound)
-    } else {
-        when(val status = cla.scheduleForTransmission(desc.bundle)) {
-            TransmissionStatus.TransmissionSuccessful -> {
-                bpLog.debug("bundle:${desc.ID()} - forwarding succeeded")
-                if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestForward)) {
-                    applicationAgent.administrativeAgent.sendStatusReport(
-                        this.bpa,
-                        desc,
-                        StatusAssertion.ForwardedBundle,
-                        StatusReportReason.NoInformation
-                    )
-                }
+    bundleProcessTransmissionStatus(desc, txHandler(desc, false))
+}
 
-                // delete afterward
-                desc.tags.add(BundleTag.Forwarded.code)
-                desc.constraints.clear()
+/* 5.4 - step 4.2 */
+suspend fun IBundleNode.findClaForBundle(
+    desc: BundleDescriptor,
+    txCancelled: Boolean
+): TransmissionStatus {
+    if (txCancelled) {
+        return TransmissionStatus.TransmissionCancelled
+    }
+
+    return router.findRoute(desc.bundle)
+        ?.scheduleForTransmission
+        ?.invoke(desc.bundle)
+        ?: TransmissionStatus.ClaNotFound
+}
+
+/* 5.4 - step 5 */
+suspend fun IBundleNode.bundleProcessTransmissionStatus(
+    desc: BundleDescriptor,
+    status: TransmissionStatus
+) {
+    when (status) {
+        TransmissionStatus.TransmissionSuccessful -> {
+            bpLog.debug("bundle:${desc.ID()} - forwarding succeeded")
+            if (desc.bundle.isFlagSet(BundleV7Flags.StatusRequestForward)) {
+                applicationAgent.administrativeAgent.sendStatusReport(
+                    this.bpa,
+                    desc,
+                    StatusAssertion.ForwardedBundle,
+                    StatusReportReason.NoInformation
+                )
             }
-            else -> {
-                bpLog.debug("bundle:${desc.ID()} - forwarding failed")
-                bundleContraindicated(desc, status)
-            }
+
+            // delete afterward
+            desc.tags.add(BundleTag.Forwarded.code)
+            desc.constraints.clear()
+        }
+        TransmissionStatus.TransmissionCancelled -> {
+            // do nothing, it was already deleted
+        }
+        else -> {
+            bpLog.debug("bundle:${desc.ID()} - forwarding attempt failed")
+            bundleContraindicated(desc, status)
         }
     }
 }
@@ -275,7 +309,7 @@ suspend fun IBundleNode.bundleContraindicated(desc: BundleDescriptor, status: Tr
     bpLog.debug("bundle:${desc.ID()} - bundle marked for contraindication")
 
     /* step 1 */
-    if(router.declareFailure(desc.bundle, status)) {
+    if (router.declareFailure(desc.bundle, status)) {
         /* step 2 */
         bundleForwardingFailed(desc, status)
     } else {
@@ -301,6 +335,10 @@ suspend fun IBundleNode.bundleForwardingFailed(desc: BundleDescriptor, status: T
 
 /* 5.10 */
 suspend fun IBundleNode.bundleDeletion(desc: BundleDescriptor, reason: StatusReportReason) {
+    if (desc.tags.contains(BundleTag.Deleted.code)) {
+        return
+    }
+
     bpLog.debug("bundle:${desc.ID()} - bundle deletion")
 
     /* step 1 */
@@ -315,4 +353,5 @@ suspend fun IBundleNode.bundleDeletion(desc: BundleDescriptor, reason: StatusRep
 
     /* step 2 */
     desc.constraints.clear()
+    desc.tags.add(BundleTag.Deleted.code)
 }

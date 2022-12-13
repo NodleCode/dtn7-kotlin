@@ -14,11 +14,11 @@ import java.util.concurrent.Callable
  * @author Lucien Loiseau on 18/02/21.
  */
 @CommandLine.Command(
-        name = "status",
-        mixinStandardHelpOptions = true,
-        description = ["", "create a status report payload"],
-        optionListHeading = "@|bold %nOptions|@:%n",
-        footer = [""]
+    name = "status",
+    mixinStandardHelpOptions = true,
+    description = ["", "create a status report payload"],
+    optionListHeading = "@|bold %nOptions|@:%n",
+    footer = [""]
 )
 class BpStatus : Callable<Void> {
 
@@ -26,16 +26,16 @@ class BpStatus : Callable<Void> {
     private var source = "dtn://source/"
 
     @CommandLine.Option(names = ["-r", "--receive"], description = ["receive assertion timestamp"])
-    private var receive = 0L
+    private var receive: Boolean = false
 
     @CommandLine.Option(names = ["-f", "--forward"], description = ["forward assertion timestamp"])
-    private var forward = 0L
+    private var forward: Boolean = false
 
     @CommandLine.Option(names = ["-d", "--delivered"], description = ["delivered assertion timestamp"])
-    private var delivered = 0L
+    private var delivered: Boolean = false
 
     @CommandLine.Option(names = ["-z", "--deleted"], description = ["deleted assertion timestamp"])
-    private var deleted = 0L
+    private var deleted: Boolean = false
 
     @CommandLine.Option(names = ["-o", "--offset"], description = ["fragment offset"])
     private var offset = 0L
@@ -45,17 +45,22 @@ class BpStatus : Callable<Void> {
 
     override fun call(): Void? {
         val status = AdministrativeRecord(
-                recordTypeCode = RecordTypeCode.StatusRecordType.code,
-                data =StatusReport()
-                .assert(StatusAssertion.ReceivedBundle, receive>0, receive)
-                .assert(StatusAssertion.ForwardedBundle, forward>0, forward)
-                .assert(StatusAssertion.DeliveredBundle, delivered>0, delivered)
-                .assert(StatusAssertion.DeletedBundle, deleted>0, deleted)
-                .source(URI.create(source))
-                .offset(offset)
-                .appDataLength(length))
+            recordTypeCode = RecordTypeCode.StatusRecordType.code,
+            data = StatusReport(
+                sourceNodeId = URI.create(source),
+                creationTimestamp = dtnTimeNow(),
+                sequenceNumber = 0,
+                fragmentOffset = offset,
+                appDataLength = length
+            )
+                .assert(StatusAssertion.ReceivedBundle, receive, dtnTimeNow())
+                .assert(StatusAssertion.ForwardedBundle, forward, dtnTimeNow())
+                .assert(StatusAssertion.DeliveredBundle, delivered, dtnTimeNow())
+                .assert(StatusAssertion.DeletedBundle, deleted, dtnTimeNow())
+        )
 
         status.cborMarshalData(System.`out`)
+        System.`out`.flush()
         return null
     }
 }

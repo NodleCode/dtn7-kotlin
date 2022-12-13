@@ -24,6 +24,8 @@ fun Bundle.addBlock(block: CanonicalBlock, pickNumber: Boolean = true): Bundle {
     return this
 }
 
+fun Bundle.isAdminRecord() = primaryBlock.isAdminRecord()
+
 fun Bundle.hasBlockType(blockType: BlockType) = hasBlockType(blockType.code)
 
 fun Bundle.hasBlockType(blockType: Int) = canonicalBlocks.any { it.blockType == blockType }
@@ -36,12 +38,13 @@ fun Bundle.getBlockNumber(blockNumber: Int) = canonicalBlocks.firstOrNull { it.b
 
 fun Bundle.getPayloadBlock() = getBlockType(BlockType.PayloadBlock.code)!!
 
-fun Bundle.getStatusReport() {
-    if (primaryBlock.isAdministiveRecord()) {
-        getPayloadBlockData().buffer.run {
+fun Bundle.getStatusReport(): StatusReport? {
+    if (primaryBlock.isAdminRecord()) {
+        return getPayloadBlockData().buffer.run {
             cborUnmarshalAdmnistrativeRecord(this).data as StatusReport
         }
     }
+    return null
 }
 
 fun Bundle.ID() = primaryBlock.ID()

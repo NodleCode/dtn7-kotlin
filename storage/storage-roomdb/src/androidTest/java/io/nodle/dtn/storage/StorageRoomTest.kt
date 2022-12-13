@@ -3,11 +3,12 @@ package io.nodle.dtn.storage
 import androidx.test.platform.app.InstrumentationRegistry
 import io.nodle.dtn.bpv7.*
 import io.nodle.dtn.bpv7.eid.createDtnEid
-import io.nodle.dtn.interfaces.BundleDescriptor
+import io.nodle.dtn.interfaces.*
 import io.nodle.dtn.utils.encodeToBase64
 import io.nodle.dtn.utils.wait
 import org.junit.Assert
 import org.junit.Test
+import java.net.URI
 import kotlin.random.Random
 
 class StorageRoomTest {
@@ -69,6 +70,101 @@ class StorageRoomTest {
 
         val ids = storage.bundleStore.wait { getAllBundleIds() }
         Assert.assertEquals(10, ids.size)
+
+        val originalIds = bundles.map { it.ID() }
+        ids.map {
+            Assert.assertEquals(true, originalIds.contains(it))
+        }
+    }
+
+    @Test
+    fun testGetAllBundleIdsWithPredicate() {
+        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
+        val storage = Bpv7StorageRoomDb(ctx, true)
+        val bundles = bundles(10)
+
+        bundles.map {
+            storage.bundleStore.wait { insert(BundleDescriptor(it)) }
+        }
+        Assert.assertEquals(10, storage.bundleStore.wait { size() })
+
+        val ids = storage.bundleStore.wait {
+            getAllPrimaryDesc {
+                it.primaryBlock.destination == URI.create("dtn://test-destination/")
+            }.map {
+                it.ID()
+            }
+        }
+        Assert.assertEquals(10, ids.size)
+
+        val originalIds = bundles.map { it.ID() }
+        ids.map {
+            Assert.assertEquals(true, originalIds.contains(it))
+        }
+    }
+
+    @Test
+    fun testGetNBundleIds() {
+        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
+        val storage = Bpv7StorageRoomDb(ctx, true)
+        val bundles = bundles(10)
+
+        bundles.map {
+            storage.bundleStore.wait { insert(BundleDescriptor(it)) }
+        }
+        Assert.assertEquals(10, storage.bundleStore.wait { size() })
+
+        val ids = storage.bundleStore.wait { getNBundleIds(5) }
+        Assert.assertEquals(5, ids.size)
+
+        val originalIds = bundles.map { it.ID() }
+        ids.map {
+            Assert.assertEquals(true, originalIds.contains(it))
+        }
+    }
+
+
+    @Test
+    fun testGetNBundleIdsOrLess() {
+        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
+        val storage = Bpv7StorageRoomDb(ctx, true)
+        val bundles = bundles(10)
+
+        bundles.map {
+            storage.bundleStore.wait { insert(BundleDescriptor(it)) }
+        }
+        Assert.assertEquals(10, storage.bundleStore.wait { size() })
+
+        val ids = storage.bundleStore.wait { getNBundleIds(15) }
+        Assert.assertEquals(10, ids.size)
+
+        val originalIds = bundles.map { it.ID() }
+        ids.map {
+            Assert.assertEquals(true, originalIds.contains(it))
+        }
+    }
+
+
+
+    @Test
+    fun testGetNBundleIdsWithDestination() {
+        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
+        val storage = Bpv7StorageRoomDb(ctx, true)
+        val bundles = bundles(10)
+
+        bundles.map {
+            storage.bundleStore.wait { insert(BundleDescriptor(it)) }
+        }
+        Assert.assertEquals(10, storage.bundleStore.wait { size() })
+
+        val ids = storage.bundleStore.wait {
+            getNPrimaryDesc(5) {
+                it.primaryBlock.destination == URI.create("dtn://test-destination/")
+            }.map {
+                it.ID()
+            }
+        }
+        Assert.assertEquals(5, ids.size)
 
         val originalIds = bundles.map { it.ID() }
         ids.map {
@@ -173,7 +269,7 @@ class StorageRoomTest {
         val bundle = bundle(10000)
         val fragments = bundle.fragment(300)
 
-        fragments.map { it ->
+        fragments.map {
             storage.bundleStore.wait { insert(BundleDescriptor(it)) }
         }
         Assert.assertEquals(fragments.size, storage.bundleStore.wait { size() })

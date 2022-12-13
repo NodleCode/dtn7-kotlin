@@ -27,29 +27,18 @@ interface BundleEntryDao {
     @Query("SELECT bid FROM bundleEntry ORDER BY expire DESC ")
     fun getAllBundleIds(): List<String>
 
-    @Query("SELECT bid, offset, payload_size, appdata FROM bundleEntry WHERE fid = :fragmentID  ORDER BY `offset` ASC")
-    fun getAllFragments(fragmentID: FragmentID): List<FragmentTuple>
+    @Query("SELECT bid FROM bundleEntry ORDER BY expire DESC LIMIT :limit")
+    fun getNBundleIds(limit: Long): List<String>
+
+    @Query("SELECT flag, destination, source, report, timestamp, sequence, offset, appdata, payload_size, constraints, tags, created, expire FROM bundleEntry ORDER BY expire DESC")
+    fun getAllPrimary(): List<BundleMetadata>
+
+    @Query("SELECT flag, destination, source, report, timestamp, sequence, offset, appdata, payload_size, constraints, tags, created, expire FROM bundleEntry ORDER BY expire DESC LIMIT :limit")
+    fun getNPrimary(limit: Long): List<BundleMetadata>
 
     @Query("DELETE FROM bundleEntry WHERE bid = :bid")
     fun delete(bid : String)
 
     @Query("DELETE FROM bundleEntry")
     fun deleteAll()
-
-    @Query("DELETE FROM bundleEntry WHERE fid = :fragmentID")
-    fun deleteAllFragments(fragmentID: FragmentID)
 }
-
-class FragmentTuple(
-    @ColumnInfo(name = "bid")
-    var bid: String,
-
-    @ColumnInfo(name = "offset")
-    var offset: Long,
-
-    @ColumnInfo(name = "payload_size")
-    var payload_size: Long,
-
-    @ColumnInfo(name = "appdata")
-    var appdata: Long,
-)

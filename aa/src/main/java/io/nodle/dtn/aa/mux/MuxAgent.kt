@@ -19,8 +19,9 @@ class MuxAgent(
     private val log = LoggerFactory.getLogger("MuxAgent")
     private var muxTable: MutableMap<URI, AARxHandler> = mutableMapOf()
 
-    override val administrativeAgent: IAdministrativeAgent = AdministrativeAgent(nodeId)
     override fun endpoints() = muxTable.map{it.key}.toMutableList().apply { add(nodeId) }
+
+    override val administrativeAgent: IAdministrativeAgent = AdministrativeAgent(nodeId)
 
     override val receiveForLocalDelivery: AARxHandler = { bundle -> localDelivery(bundle) }
 

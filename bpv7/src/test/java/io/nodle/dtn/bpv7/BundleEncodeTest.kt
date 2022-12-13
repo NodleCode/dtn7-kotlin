@@ -1,6 +1,7 @@
 package io.nodle.dtn.bpv7
 
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
+import io.nodle.dtn.bpv7.MockBundle.bundle
 import io.nodle.dtn.bpv7.administrative.*
 import io.nodle.dtn.bpv7.bpsec.addEd25519Signature
 import io.nodle.dtn.bpv7.extensions.ageBlock
@@ -22,10 +23,10 @@ class BundleEncodeTest {
     fun testSimpleBundleBufferEncoding() {
         val testPayload = byteArrayOf(0xca.toByte(), 0xfe.toByte(), 0, 0xfe.toByte(), 0xca.toByte())
         val bundle = PrimaryBlock()
-                .destination(URI.create("dtn://nodle/dtn-router"))
-                .source(URI.create("dtn://test-sdk/"))
-                .makeBundle()
-                .addBlock(payloadBlock(testPayload).crcType(CRCType.CRC32))
+            .destination(URI.create("dtn://nodle/dtn-router"))
+            .source(URI.create("dtn://test-sdk/"))
+            .makeBundle()
+            .addBlock(payloadBlock(testPayload).crcType(CRCType.CRC32))
         try {
             Assert.assertEquals(bundle, cborUnmarshalBundle(bundle.cborMarshal()))
         } catch (e: CborEncodingException) {
@@ -37,10 +38,10 @@ class BundleEncodeTest {
     fun testSimpleBundle() {
         val testPayload = byteArrayOf(0xca.toByte(), 0xfe.toByte(), 0, 0xfe.toByte(), 0xca.toByte())
         val bundle = PrimaryBlock()
-                .destination(URI.create("dtn://nodle/dtn-router"))
-                .source(URI.create("dtn://test-sdk/"))
-                .makeBundle()
-                .addBlock(payloadBlock(testPayload).crcType(CRCType.CRC32))
+            .destination(URI.create("dtn://nodle/dtn-router"))
+            .source(URI.create("dtn://test-sdk/"))
+            .makeBundle()
+            .addBlock(payloadBlock(testPayload).crcType(CRCType.CRC32))
         testEncodeDecode(bundle)
     }
 
@@ -48,12 +49,12 @@ class BundleEncodeTest {
     fun testAgeBlockBundle() {
         val testPayload = byteArrayOf(0xca.toByte(), 0xfe.toByte(), 0, 0xfe.toByte(), 0xca.toByte())
         val bundle = PrimaryBlock()
-                .destination(URI.create("dtn://nodle/dtn-router"))
-                .source(URI.create("dtn://test-sdk/"))
-                .creationTimestamp(0)
-                .makeBundle()
-                .addBlock(payloadBlock(testPayload).crcType(CRCType.CRC32))
-                .addBlock(ageBlock(5000))
+            .destination(URI.create("dtn://nodle/dtn-router"))
+            .source(URI.create("dtn://test-sdk/"))
+            .creationTimestamp(0)
+            .makeBundle()
+            .addBlock(payloadBlock(testPayload).crcType(CRCType.CRC32))
+            .addBlock(ageBlock(5000))
         testEncodeDecode(bundle)
     }
 
@@ -62,11 +63,11 @@ class BundleEncodeTest {
         val testPayload = byteArrayOf(0xca.toByte(), 0xfe.toByte(), 0, 0xfe.toByte(), 0xca.toByte())
         val keyPair = Ed25519Util.generateEd25519KeyPair()
         val bundle = PrimaryBlock()
-                .destination(URI.create("dtn://nodle/dtn-router"))
-                .source(URI.create("dtn://test-sdk/"))
-                .makeBundle()
-                .addBlock(payloadBlock(testPayload).crcType(CRCType.CRC32))
-                .addEd25519Signature(keyPair.private as Ed25519PrivateKeyParameters, listOf(0, 1))
+            .destination(URI.create("dtn://nodle/dtn-router"))
+            .source(URI.create("dtn://test-sdk/"))
+            .makeBundle()
+            .addBlock(payloadBlock(testPayload).crcType(CRCType.CRC32))
+            .addEd25519Signature(keyPair.private as Ed25519PrivateKeyParameters, listOf(0, 1))
         testEncodeDecode(bundle)
     }
 
@@ -75,12 +76,12 @@ class BundleEncodeTest {
         val testPayload = byteArrayOf(0xca.toByte(), 0xfe.toByte(), 0, 0xfe.toByte(), 0xca.toByte())
         val keyPair = Ed25519Util.generateEd25519KeyPair()
         val bundle = PrimaryBlock()
-                .destination(URI.create("dtn://nodle/dtn-router"))
-                .source(URI.create("dtn://test-sdk/"))
-                .crcType(CRCType.NoCRC)
-                .makeBundle()
-                .addBlock(payloadBlock(testPayload).crcType(CRCType.CRC32))
-                .addEd25519Signature(keyPair.private as Ed25519PrivateKeyParameters, listOf(0, 1))
+            .destination(URI.create("dtn://nodle/dtn-router"))
+            .source(URI.create("dtn://test-sdk/"))
+            .crcType(CRCType.NoCRC)
+            .makeBundle()
+            .addBlock(payloadBlock(testPayload).crcType(CRCType.CRC32))
+            .addEd25519Signature(keyPair.private as Ed25519PrivateKeyParameters, listOf(0, 1))
         testEncodeDecode(bundle)
     }
 
@@ -111,10 +112,12 @@ class BundleEncodeTest {
         val testPayload = "cafe00feca".hexToBa()
 
         val bundle = PrimaryBlock()
-                .destination(URI.create("dtp://nodle/dtn-router")) // wrong dtn scheme
-                .makeBundle()
-                .addBlock(payloadBlock(testPayload)
-                        .crcType(CRCType.CRC32))
+            .destination(URI.create("dtp://nodle/dtn-router")) // wrong dtn scheme
+            .makeBundle()
+            .addBlock(
+                payloadBlock(testPayload)
+                    .crcType(CRCType.CRC32)
+            )
         val buffer = ByteArrayOutputStream()
 
         try {
@@ -139,24 +142,36 @@ class BundleEncodeTest {
     @Test
     fun testAdministrationRecord() {
         val admRecord = AdministrativeRecord(
-                recordTypeCode = RecordTypeCode.StatusRecordType.code,
-                data = StatusReport()
-                        .assert(StatusAssertion.ReceivedBundle, true, 1613607271)
-                        .assert(StatusAssertion.ForwardedBundle, true, 1613897271)
-                        .reason(StatusReportReason.NoInformation)
-                        .source(URI.create("dtn://test-sdk/")))
+            recordTypeCode = RecordTypeCode.StatusRecordType.code,
+            data = StatusReport(
+                sourceNodeId = URI.create("dtn://test-sdk/")
+            )
+                .assert(StatusAssertion.ReceivedBundle, true, 1613607271)
+                .assert(StatusAssertion.ForwardedBundle, true, 1613897271)
+                .reason(StatusReportReason.NoInformation)
+        )
 
         val bundle = PrimaryBlock()
-                .destination(URI.create("dtn://nodle/dtn-router"))
-                .source(URI.create("dtn://test-sdk/"))
-                .setProcV7Flags(BundleV7Flags.AdministrativeRecordPayload)
-                .makeBundle()
-                .addBlock(payloadBlock(admRecord.cborMarshalData()).crcType(CRCType.CRC32))
+            .destination(URI.create("dtn://nodle/dtn-router"))
+            .source(URI.create("dtn://test-sdk/"))
+            .setProcV7Flags(BundleV7Flags.AdministrativeRecordPayload)
+            .makeBundle()
+            .addBlock(payloadBlock(admRecord.cborMarshalData()).crcType(CRCType.CRC32))
         try {
             Assert.assertEquals(bundle, cborUnmarshalBundle(bundle.cborMarshal()))
         } catch (e: CborEncodingException) {
             Assert.fail()
         }
+    }
+
+
+    @Test
+    fun testStatusReportID() {
+        val bundle = bundle()
+        val status = statusReport(bundle)
+            .assert(StatusAssertion.ReceivedBundle, true, dtnTimeNow())
+            .reason(StatusReportReason.NoInformation)
+        Assert.assertEquals(bundle.ID(), status.reportedId())
     }
 
 }

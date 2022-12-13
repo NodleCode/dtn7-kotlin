@@ -1,11 +1,47 @@
 package io.nodle.dtn.bpv7.administrative
 
 import io.nodle.dtn.bpv7.Bundle
+import io.nodle.dtn.bpv7.DtnTime
+import io.nodle.dtn.bpv7.dtnTimeNow
+import io.nodle.dtn.bpv7.eid.nullDtnEid
+import io.nodle.dtn.bpv7.isFragment
 import java.net.URI
+import java.util.*
 
 /**
  * @author Lucien Loiseau on 17/02/21.
  */
+
+data class StatusReport(
+    var received: DtnTime = 0,
+    var forwarded: DtnTime = 0,
+    var delivered: DtnTime = 0,
+    var deleted: DtnTime = 0,
+    var otherAssertions: MutableList<StatusItem> = mutableListOf(),
+    var bundleStatusReportReason: Int = StatusReportReason.NoInformation.code,
+    var sourceNodeId: URI = nullDtnEid(),
+    var creationTimestamp: DtnTime = 0,
+    var sequenceNumber: Long = 0,
+    var isFragment: Boolean = false,
+    var fragmentOffset: Long = 0,
+    var appDataLength: Long = 0
+) : AdministrativeData()
+
+fun statusReport(bundle: Bundle): StatusReport =
+    StatusReport(
+        sourceNodeId = bundle.primaryBlock.source,
+        creationTimestamp = bundle.primaryBlock.creationTimestamp,
+        sequenceNumber = bundle.primaryBlock.sequenceNumber,
+        isFragment = bundle.primaryBlock.isFragment(),
+        fragmentOffset = bundle.primaryBlock.fragmentOffset,
+        appDataLength = bundle.primaryBlock.appDataLength
+    )
+
+data class StatusItem(
+    var statusAssertion: Int,
+    var asserted: Boolean = false,
+    var timestamp: DtnTime = 0,
+)
 
 enum class StatusAssertion(val code: Int) {
     ReceivedBundle(0),
@@ -70,82 +106,64 @@ enum class StatusReportReason(val code: Int) {
     }
 }
 
-data class StatusItem(
-    var statusAssertion: Int,
-    var asserted: Boolean = false,
-    var timestamp: Long = 0,
-)
-
 fun statusRecord(
     bundle: Bundle,
     assertion: StatusAssertion,
     reason: StatusReportReason,
-    time: Long
+    time: DtnTime = dtnTimeNow()
 ): AdministrativeRecord {
     return AdministrativeRecord(
         recordTypeCode = RecordTypeCode.StatusRecordType.code,
-        data = StatusReport()
+        data = statusReport(bundle)
             .assert(assertion, true, time)
             .reason(reason)
-            .creationTimestamp(bundle.primaryBlock.creationTimestamp)
-            .source(bundle.primaryBlock.source)
     )
 }
 
-fun StatusReport.assert(status: StatusAssertion, assert: Boolean, time: Long) =
-    assert(status.code, assert, time)
-
-fun StatusReport.assert(status: Int, assert: Boolean, time: Long): StatusReport {
+fun StatusReport.assert(status: StatusAssertion, assert: Boolean, time: DtnTime): StatusReport {
     when (status) {
-        StatusAssertion.ReceivedBundle.code -> received = time
-        StatusAssertion.ForwardedBundle.code -> forwarded = time
-        StatusAssertion.DeliveredBundle.code -> delivered = time
-        StatusAssertion.DeletedBundle.code -> deleted = time
-        else -> otherAssertions.firstOrNull { it.statusAssertion == status }
+        StatusAssertion.ReceivedBundle -> received = time
+        StatusAssertion.ForwardedBundle -> forwarded = time
+        StatusAssertion.DeliveredBundle -> delivered = time
+        StatusAssertion.DeletedBundle -> deleted = time
+        else -> otherAssertions.firstOrNull { it.statusAssertion == status.code }
             ?.apply {
                 asserted = assert
                 timestamp = time
-            } ?: otherAssertions.add(StatusItem(status, assert, time))
+            } ?: otherAssertions.add(StatusItem(status.code, assert, time))
     }
     return this
 }
-
-fun StatusReport.assertTime(status: StatusAssertion): Long = assertTime(status.code)
-fun StatusReport.assertTime(status: Int): Long {
-    return when (status) {
-        StatusAssertion.ReceivedBundle.code -> received
-        StatusAssertion.ForwardedBundle.code -> forwarded
-        StatusAssertion.DeliveredBundle.code -> delivered
-        StatusAssertion.DeletedBundle.code -> deleted
-        else -> otherAssertions.getOrNull(status)?.timestamp ?: 0
-    }
-}
-
-fun StatusReport.isAsserted(status: StatusAssertion): Boolean = assertTime(status) > 0
-fun StatusReport.isAsserted(status: Int): Boolean = assertTime(status) > 0
 
 fun StatusReport.reason(reason: StatusReportReason): StatusReport {
     bundleStatusReportReason = reason.code
     return this
 }
 
-fun StatusReport.source(src: URI): StatusReport {
-    sourceNodeId = src
-    return this
+fun StatusReport.reportedId() : String {
+    return UUID.nameUUIDFromBytes(
+        (sourceNodeId.toASCIIString()
+                + creationTimestamp
+                + sequenceNumber
+                + isFragment
+                + fragmentOffset
+                + appDataLength)
+            .toByteArray()).toString()
 }
 
-fun StatusReport.creationTimestamp(timestamp: Long): StatusReport {
-    creationTimestamp = timestamp
-    return this
+fun StatusReport.assertion() : String {
+    val sb = StringBuilder("");
+    if(received > 0) {
+        sb.append("${if (sb.isNotEmpty()) "| " else ""}RECEIVED ")
+    }
+    if(forwarded > 0) {
+        sb.append("${if (sb.isNotEmpty()) "| " else ""}FORWARDED ")
+    }
+    if(delivered > 0) {
+        sb.append("${if (sb.isNotEmpty()) "| " else ""}DELIVERED ")
+    }
+    if(deleted > 0) {
+        sb.append("${if (sb.isNotEmpty()) "| " else ""}DELETED ")
+    }
+    return sb.toString()
 }
-
-fun StatusReport.offset(off: Long): StatusReport {
-    fragmentOffset = off
-    return this
-}
-
-fun StatusReport.appDataLength(length: Long): StatusReport {
-    appDataLength = length
-    return this
-}
-

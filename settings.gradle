@@ -5,8 +5,10 @@ include ':agent'
 include ':storage-sqldb'
 include ':storage-roomdb'
 include ':bputil'
+include ':example-dtnchat'
 
 project(":storage-sqldb").projectDir = file("storage/storage-sqldb")
 project(":storage-roomdb").projectDir = file("storage/storage-roomdb")
 project(":bputil").projectDir = file("tools/bputil")
+project(":example-dtnchat").projectDir = file("tools/example-dtnchat")
 

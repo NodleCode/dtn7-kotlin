@@ -51,6 +51,7 @@ ext {
     bounty = "1.65"
     picocli = "4.7.0"
     coreKtxVersion = "1.5.0"
+    rxKotlinVersion = "3.0.1"
     mockitoVersion = "4.1.0"
     coroutineTest = "1.6.4"
     arrow_version = "1.1.2"

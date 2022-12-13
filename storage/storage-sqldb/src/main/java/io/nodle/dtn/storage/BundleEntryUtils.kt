@@ -1,12 +1,15 @@
 package io.nodle.dtn.storage
 
-import io.nodle.dtn.bpv7.Bundle
-import io.nodle.dtn.bpv7.cborMarshal
-import io.nodle.dtn.bpv7.cborUnmarshalBundle
+import io.nodle.dtn.bpv7.*
 import io.nodle.dtn.interfaces.BundleDescriptor
+import io.nodle.dtn.interfaces.PrimaryBlockDescriptor
 import io.nodle.dtn.storage.data.BundleEntry
+import io.nodle.dtn.storage.data.GetAllPrimary
+import io.nodle.dtn.storage.data.GetNPrimary
 import io.nodle.dtn.utils.decodeFromBase64
 import io.nodle.dtn.utils.encodeToBase64
+import java.net.URI
+import kotlin.math.exp
 
 fun BundleEntry.toBundleDescriptor() =
     BundleDescriptor(
@@ -14,6 +17,43 @@ fun BundleEntry.toBundleDescriptor() =
         created = created,
         constraints = StringListConverter.fromString(constraints).toMutableList(),
         tags = StringListConverter.fromString(tags).toMutableList()
+    )
+
+fun GetAllPrimary.toPrimaryBlockDescriptor() =
+    PrimaryBlockDescriptor(
+        primaryBlock = PrimaryBlock(
+            procV7Flags = flag,
+            source = URI.create(source),
+            destination = URI.create(destination),
+            reportTo = URI.create(report),
+            creationTimestamp = timestamp,
+            sequenceNumber = sequence,
+            fragmentOffset = offset,
+            appDataLength = appdata
+        ),
+        created = created,
+        constraints = StringListConverter.fromString(constraints).toMutableList(),
+        tags = StringListConverter.fromString(tags).toMutableList(),
+        payloadSize = payload_size,
+        expireAt = expire
+    )
+
+fun GetNPrimary.toPrimaryBlockDescriptor() =
+    PrimaryBlockDescriptor(
+        primaryBlock = PrimaryBlock(
+            source = URI.create(source),
+            destination = URI.create(destination),
+            reportTo = URI.create(report),
+            creationTimestamp = timestamp,
+            sequenceNumber = sequence,
+            fragmentOffset = offset,
+            appDataLength = appdata
+        ),
+        created = created,
+        constraints = StringListConverter.fromString(constraints).toMutableList(),
+        tags = StringListConverter.fromString(tags).toMutableList(),
+        payloadSize = payload_size,
+        expireAt = expire
     )
 
 object StringListConverter {

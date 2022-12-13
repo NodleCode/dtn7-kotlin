@@ -1,64 +1,25 @@
 package io.nodle.dtn.bpv7
 
 import io.nodle.dtn.bpv7.bpsec.addEd25519Signature
+import io.nodle.dtn.bpv7.eid.createDtnEid
 import io.nodle.dtn.crypto.Ed25519Util
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters
 import java.net.URI
+import kotlin.random.Random
 
 /**
  * @author Lucien Loiseau on 18/02/21.
  */
 public object MockBundle {
-    val localNodeId = URI.create("dtn://test/")
-    val remoteNodeId = URI.create("dtn://nodle/dtn-router")
-    val keyPair = Ed25519Util.generateEd25519KeyPair()
+        fun bundle(s: Int = 10000) = PrimaryBlock()
+                .destination(createDtnEid("test-destination"))
+                .source(createDtnEid("test-source"))
+                .reportTo(createDtnEid("test-report-to"))
+                .creationTimestamp(dtnTimeNow())
+                .lifetime(10000)
+                .crcType(CRCType.CRC32)
+                .makeBundle()
+                .addBlock(payloadBlock(Random.nextBytes(array = ByteArray(s))))
 
-    val inBundle1 = PrimaryBlock()
-            .destination(localNodeId)
-            .source(remoteNodeId)
-            .reportTo(remoteNodeId)
-            .crcType(CRCType.CRC32)
-            .makeBundle()
-            .addBlock(payloadBlock(ByteArray(10000)))
-            .addEd25519Signature(keyPair.private as Ed25519PrivateKeyParameters, listOf(0, 1))
-
-    val inBundle2 = PrimaryBlock()
-            .destination(localNodeId)
-            .source(remoteNodeId)
-            .reportTo(remoteNodeId)
-            .setProcV7Flags(BundleV7Flags.StatusRequestDelivery)
-            .crcType(CRCType.CRC32)
-            .makeBundle()
-            .addBlock(payloadBlock(ByteArray(10000)))
-            .addEd25519Signature(keyPair.private as Ed25519PrivateKeyParameters, listOf(0, 1))
-
-    val outBundle1 = PrimaryBlock()
-            .destination(remoteNodeId)
-            .source(localNodeId)
-            .reportTo(remoteNodeId)
-            .crcType(CRCType.CRC32)
-            .makeBundle()
-            .addBlock(payloadBlock(ByteArray(10000)))
-            .addEd25519Signature(keyPair.private as Ed25519PrivateKeyParameters, listOf(0, 1))
-
-    val outBundle2 = PrimaryBlock()
-            .destination(remoteNodeId)
-            .source(localNodeId)
-            .reportTo(remoteNodeId)
-            .crcType(CRCType.CRC32)
-            .setProcV7Flags(BundleV7Flags.StatusRequestForward)
-            .makeBundle()
-            .addBlock(payloadBlock(ByteArray(10000)))
-            .addEd25519Signature(keyPair.private as Ed25519PrivateKeyParameters, listOf(0, 1))
-
-    val outBundle3 = PrimaryBlock()
-            .destination(remoteNodeId)
-            .source(localNodeId)
-            .reportTo(remoteNodeId)
-            .crcType(CRCType.CRC32)
-            .setProcV7Flags(BundleV7Flags.StatusRequestForward)
-            .setProcV7Flags(BundleV7Flags.StatusRequestReception)
-            .makeBundle()
-            .addBlock(payloadBlock(ByteArray(10000)))
-            .addEd25519Signature(keyPair.private as Ed25519PrivateKeyParameters, listOf(0, 1))
+        fun bundles(c: Int, s: Int = 10000) = (0 until c).map { bundle(s) }
 }

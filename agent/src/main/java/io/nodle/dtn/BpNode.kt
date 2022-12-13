@@ -16,7 +16,7 @@ class BpNode(
     override val store : Bpv7Storage = NoBpv7Storage,
 ) : IBundleNode {
 
-    private val scope = CoroutineScope(Dispatchers.IO)
+    val scope = CoroutineScope(Dispatchers.IO)
 
     override val applicationAgent = MuxAgent(nodeId) {
         scope.launch {

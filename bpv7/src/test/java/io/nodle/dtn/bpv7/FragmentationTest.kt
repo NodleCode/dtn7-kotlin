@@ -2,6 +2,7 @@ package io.nodle.dtn.bpv7
 
 
 import io.nodle.dtn.bpv7.bpsec.addEd25519Signature
+import io.nodle.dtn.crypto.Ed25519Util
 import io.nodle.dtn.utils.encodeToBase64
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters
 import org.junit.Assert
@@ -10,15 +11,9 @@ import kotlin.random.Random.Default.nextBytes
 
 class FragmentationTest {
 
-    private val randomPayload = nextBytes(array = ByteArray(10000))
-    private val bundle = PrimaryBlock()
-        .destination(MockBundle.localNodeId)
-        .source(MockBundle.remoteNodeId)
-        .reportTo(MockBundle.remoteNodeId)
-        .crcType(CRCType.CRC32)
-        .makeBundle()
-        .addBlock(payloadBlock(randomPayload))
-        .addEd25519Signature(MockBundle.keyPair.private as Ed25519PrivateKeyParameters, listOf(0, 1))
+    private val keyPair = Ed25519Util.generateEd25519KeyPair()
+    private val bundle = MockBundle.bundle()
+        .addEd25519Signature(keyPair.private as Ed25519PrivateKeyParameters, listOf(0, 1))
 
     @Test
     fun testNoFragmentation() {

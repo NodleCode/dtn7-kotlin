@@ -2,6 +2,7 @@ package io.nodle.dtn.bpv7
 
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.dataformat.cbor.CBORGenerator
+import io.nodle.dtn.bpv7.administrative.cborMarshal
 import io.nodle.dtn.bpv7.eid.*
 import io.nodle.dtn.crypto.CRC
 import io.nodle.dtn.crypto.CRC16X25
@@ -67,10 +68,7 @@ fun PrimaryBlock.cborMarshal(out: OutputStream) {
         it.cborMarshal(destination)
         it.cborMarshal(source)
         it.cborMarshal(reportTo)
-        it.writeStartArray(null, 2)
-        it.writeNumber(creationTimestamp)
-        it.writeNumber(sequenceNumber)
-        it.writeEndArray()
+        it.cborMarshal(creationTimestamp, sequenceNumber)
         it.writeNumber(lifetime)
         if (procV7Flags.isFlagSet(BundleV7Flags.IsFragment.offset)) {
             it.writeNumber(fragmentOffset)
@@ -208,4 +206,12 @@ fun CBORGenerator.cborMarshal(uri: URI) {
         return
     }
     throw CborEncodingException("eid not supported: ${uri.toASCIIString()}")
+}
+
+@Throws(CborEncodingException::class)
+fun CBORGenerator.cborMarshal(creationTimestamp: DtnTime, sequenceNumber: Long) {
+    writeStartArray(null, 2)
+    writeNumber(creationTimestamp)
+    writeNumber(sequenceNumber)
+    writeEndArray()
 }

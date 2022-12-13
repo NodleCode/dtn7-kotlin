@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "66d5a03a1f68f42fdb05a49d133f8ce9",
+    "identityHash": "d84bc602b0132bd05bea1017d61d31cb",
     "entities": [
       {
         "tableName": "BundleEntry",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`bid` TEXT NOT NULL, `fid` TEXT NOT NULL, `destination` TEXT NOT NULL, `source` TEXT NOT NULL, `offset` INTEGER NOT NULL, `payload_size` INTEGER NOT NULL, `appdata` INTEGER NOT NULL, `constraints` TEXT NOT NULL, `tags` TEXT NOT NULL, `created` INTEGER NOT NULL, `expire` INTEGER NOT NULL, `bundle` TEXT NOT NULL, `row_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`bid` TEXT NOT NULL, `flag` INTEGER NOT NULL, `destination` TEXT NOT NULL, `source` TEXT NOT NULL, `report` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, `sequence` INTEGER NOT NULL, `lifetime` INTEGER NOT NULL, `offset` INTEGER NOT NULL, `appdata` INTEGER NOT NULL, `payload_size` INTEGER NOT NULL, `constraints` TEXT NOT NULL, `tags` TEXT NOT NULL, `created` INTEGER NOT NULL, `expire` INTEGER NOT NULL, `bundle` TEXT NOT NULL, `row_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL)",
         "fields": [
           {
             "fieldPath": "bid",
@@ -15,9 +15,9 @@
             "notNull": true
           },
           {
-            "fieldPath": "fid",
-            "columnName": "fid",
-            "affinity": "TEXT",
+            "fieldPath": "flag",
+            "columnName": "flag",
+            "affinity": "INTEGER",
             "notNull": true
           },
           {
@@ -33,20 +33,44 @@
             "notNull": true
           },
           {
+            "fieldPath": "report",
+            "columnName": "report",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sequence",
+            "columnName": "sequence",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lifetime",
+            "columnName": "lifetime",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
             "fieldPath": "offset",
             "columnName": "offset",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "payloadSize",
-            "columnName": "payload_size",
+            "fieldPath": "appdata",
+            "columnName": "appdata",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "appdata",
-            "columnName": "appdata",
+            "fieldPath": "payloadSize",
+            "columnName": "payload_size",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -119,7 +143,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '66d5a03a1f68f42fdb05a49d133f8ce9')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd84bc602b0132bd05bea1017d61d31cb')"
     ]
   }
 }

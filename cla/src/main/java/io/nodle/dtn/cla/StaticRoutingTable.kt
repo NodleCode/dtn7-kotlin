@@ -1,6 +1,7 @@
 package io.nodle.dtn.cla
 
 import io.nodle.dtn.bpv7.Bundle
+import io.nodle.dtn.interfaces.BundleToClaMatcher
 import io.nodle.dtn.interfaces.IConvergenceLayerSender
 import io.nodle.dtn.interfaces.IRouter
 import io.nodle.dtn.interfaces.TransmissionStatus
@@ -11,21 +12,29 @@ class StaticRoutingTable : IRouter {
     private val log = LoggerFactory.getLogger("RoutingTable")
 
     // main routing table
-    var staticRoutes: MutableMap<URI, IConvergenceLayerSender> = HashMap()
-    var default: IConvergenceLayerSender? = null
+    private var staticRoutes: MutableMap<URI, IConvergenceLayerSender> = HashMap()
+    private var default: IConvergenceLayerSender? = null
 
     fun setDefaultRoute(cla: IConvergenceLayerSender?) {
         default = cla
     }
 
-    /**
-     * findRoute returns the convergence layer to use for a given dtn endpoint id.
-     * it returns the first convergence layer that matches the destination eid of the bundle
-     * or null if no such endpoint were found.
-     *
-     * @param bundle the bundle to forwards
-     * @return a convergence layer or null
-     */
+    override fun getBundleToClaMatcher(claPeerEid: URI): BundleToClaMatcher {
+        val allDestinationEidRoutingToClaPeerEid =
+            staticRoutes
+                .filter { it.value.peerEndpointId == claPeerEid }
+                .map { it.key }
+
+        return { primaryDesc ->
+            val bundleDest = primaryDesc.primaryBlock.destination.toASCIIString()
+            bundleDest.startsWith(claPeerEid.toASCIIString())
+                    || (default?.peerEndpointId == claPeerEid)
+                    || allDestinationEidRoutingToClaPeerEid.any {
+                bundleDest.startsWith(it.toASCIIString())
+            }
+        }
+    }
+
     override fun findRoute(bundle: Bundle): IConvergenceLayerSender? {
         for ((k, v) in staticRoutes) {
             if (k == bundle.primaryBlock.destination) {
@@ -35,9 +44,10 @@ class StaticRoutingTable : IRouter {
         }
         return default
     }
-    
+
     override fun declareFailure(bundle: Bundle, status: TransmissionStatus) =
         when (status) {
+            TransmissionStatus.ClaNotFound,
             TransmissionStatus.TransmissionSuccessful,
             TransmissionStatus.TransmissionFailed,
             TransmissionStatus.TransmissionTemporaryUnavailable -> false
