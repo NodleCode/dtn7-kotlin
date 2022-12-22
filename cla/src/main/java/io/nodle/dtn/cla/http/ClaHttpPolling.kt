@@ -5,6 +5,8 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.net.URI
+import java.util.*
+import java.util.concurrent.atomic.AtomicInteger
 
 fun IBundleNode.pollHttpPeriodically(
     scope: CoroutineScope,
@@ -61,11 +63,12 @@ suspend fun IBundleNode.fetchBundlesForBulkSend(
 }
 
 class BulkHttpBundleSender(
-    private var numberOfBundle: Int,
+    private val expectedNumberOfBundles: Int,
     private val claHttpClient: ClaHttpClient
 ) {
-    private val queue = mutableListOf<BundleDescriptor>()
-    private val mutex = Mutex(true)
+    private var numberOfBundle = AtomicInteger(expectedNumberOfBundles)
+    private val queue = Collections.synchronizedList(mutableListOf<BundleDescriptor>())
+    private val waitQueue = Mutex(true)
     private var transmissionStatus: TransmissionStatus =
         TransmissionStatus.TransmissionTemporaryUnavailable
 
@@ -73,16 +76,12 @@ class BulkHttpBundleSender(
         if (!cancelled) {
             queue.add(desc)
         }
-        numberOfBundle--
-        return checkSend()
-    }
 
-    private suspend fun checkSend(): TransmissionStatus {
-        if (numberOfBundle == 0) {
+        if(numberOfBundle.addAndGet(-1) == 0) {
             transmissionStatus = claHttpClient.sendBundles(queue.map { it.bundle })
-            mutex.unlock()
+            waitQueue.unlock()
         } else {
-            mutex.withLock {}
+            waitQueue.withLock {}
         }
         return transmissionStatus
     }
